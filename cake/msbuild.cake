@@ -1,11 +1,19 @@
 DirectoryPath PACKAGE_CACHE_PATH = MakeAbsolute(ROOT_PATH.Combine("externals/package_cache"));
 DirectoryPath OUTPUT_NUGETS_PATH = MakeAbsolute(ROOT_PATH.Combine("output/nugets"));
-DirectoryPath OUTPUT_SPECIAL_NUGETS_PATH = MakeAbsolute(ROOT_PATH.Combine("output/special-nugets"));
+DirectoryPath OUTPUT_SPECIAL_NUGETS_PATH = MakeAbsolute(ROOT_PATH.Combine("output/nugets-special"));
+DirectoryPath OUTPUT_SYMBOLS_NUGETS_PATH = MakeAbsolute(ROOT_PATH.Combine("output/nugets-symbols"));
 
 var NUGETS_SOURCES = new [] {
     OUTPUT_NUGETS_PATH.FullPath,
     "https://api.nuget.org/v3/index.json",
-    "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-eng/nuget/v3/index.json"
+    "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public/nuget/v3/index.json",
+    "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet6/nuget/v3/index.json",
+    "https://pkgs.dev.azure.com/azure-public/vside/_packaging/xamarin-impl/nuget/v3/index.json",
+    "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-eng/nuget/v3/index.json",
+    "https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspnetcore-7c57ecbd-3/nuget/v3/index.json",
+    "https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-runtime-4822e3c3-5/nuget/v3/index.json",
+    "https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-windowsdesktop-59fea7da-4/nuget/v3/index.json",
+    "https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-emsdk-1ec2e17f-4/nuget/v3/index.json"
 };
 
 void RunNuGetRestorePackagesConfig(FilePath sln)
@@ -15,7 +23,6 @@ void RunNuGetRestorePackagesConfig(FilePath sln)
     EnsureDirectoryExists(OUTPUT_NUGETS_PATH);
 
     var settings = new NuGetRestoreSettings {
-        ToolPath = NUGET_EXE,
         Source = NUGETS_SOURCES,
         NoCache = true,
         PackagesDirectory = dir.Combine("packages"),
@@ -43,7 +50,7 @@ void RunMSBuild(
         c.MaxCpuCount = 0;
 
         var relativeSolution = MakeAbsolute(ROOT_PATH).GetRelativePath(MakeAbsolute(solution));
-        var blPath = ROOT_PATH.Combine("output/binlogs").CombineWithFilePath(relativeSolution + ".binlog");
+        var blPath = ROOT_PATH.Combine("output/logs/binlogs").CombineWithFilePath(relativeSolution + ".binlog");
         c.BinaryLogger = new MSBuildBinaryLogSettings {
             Enabled = true,
             FileName = blPath.FullPath,

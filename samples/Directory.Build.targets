@@ -1,12 +1,10 @@
 <Project>
 
-  <!-- workaround for https://github.com/microsoft/ProjectReunion/pull/707 -->
-  <Target Name="Net6WinUIWorkaround"
-          BeforeTargets="_GetSdkToolsPathsFromSdk"
-          Condition="$(TargetFramework.Contains('-windows')) == true ">
-    <PropertyGroup>
-      <TargetPlatformIdentifierAdjusted>UAP</TargetPlatformIdentifierAdjusted>
-    </PropertyGroup>
+  <!-- HACK: Do not copy the native bootstrap files -->
+  <Target Name="_RemoveWasdkBootstrapDll" BeforeTargets="ResolveReferences">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Filename)%(Extension)' == 'Microsoft.WindowsAppRuntime.Bootstrap.dll'" />
+    </ItemGroup>
   </Target>
 
 </Project>
