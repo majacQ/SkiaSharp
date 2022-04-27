@@ -1,58 +1,44 @@
 ﻿using System;
-using System.ComponentModel;
 using CoreAnimation;
 using Foundation;
+
+#if __MAUI__
+using SKFormsView = SkiaSharp.Views.Maui.Controls.SKGLView;
+using SKNativeView = SkiaSharp.Views.iOS.SKGLView;
+#else
 using Xamarin.Forms;
-using Xamarin.Forms.Platform.iOS;
 
 using SKFormsView = SkiaSharp.Views.Forms.SKGLView;
-using SKNativeView = SkiaSharp.Views.SKGLView;
+using SKNativeView = SkiaSharp.Views.iOS.SKGLView;
 
 [assembly: ExportRenderer(typeof(SKFormsView), typeof(SkiaSharp.Views.Forms.SKGLViewRenderer))]
+#endif
 
+#if __MAUI__
+namespace SkiaSharp.Views.Maui.Controls.Compatibility
+#else
 namespace SkiaSharp.Views.Forms
+#endif
 {
-	internal class SKGLViewRenderer : ViewRenderer<SKFormsView, SKNativeView>
+	public class SKGLViewRenderer : SKGLViewRendererBase<SKFormsView, SKNativeView>
 	{
 		private CADisplayLink displayLink;
 
-		protected override void OnElementChanged(ElementChangedEventArgs<SKFormsView> e)
+		public SKGLViewRenderer()
 		{
-			if (e.OldElement != null)
-			{
-				var oldController = (ISKGLViewController)e.OldElement;
-
-				// unsubscribe from events
-				oldController.SurfaceInvalidated -= OnSurfaceInvalidated;
-			}
-
-			if (e.NewElement != null)
-			{
-				var newController = (ISKGLViewController)e.NewElement;
-
-				// create the native view
-				var view = new InternalView(newController);
-				SetNativeControl(view);
-
-				// subscribe to events from the user
-				newController.SurfaceInvalidated += OnSurfaceInvalidated;
-
-				// start the rendering
-				SetupRenderLoop(false);
-			}
-
-			base.OnElementChanged(e);
+			SetDisablesUserInteraction(true);
 		}
 
-		protected override void OnElementPropertyChanged(object sender, PropertyChangedEventArgs e)
+		protected override SKNativeView CreateNativeControl()
 		{
-			base.OnElementPropertyChanged(sender, e);
+			var view = GetType() == typeof(SKGLViewRenderer)
+				? new SKNativeView()
+				: base.CreateNativeControl();
 
-			// refresh the render loop
-			if (e.PropertyName == SKFormsView.HasRenderLoopProperty.PropertyName)
-			{
-				SetupRenderLoop(false);
-			}
+			// Force the opacity to false for consistency with the other platforms
+			view.Opaque = false;
+
+			return view;
 		}
 
 		protected override void Dispose(bool disposing)
@@ -65,17 +51,10 @@ namespace SkiaSharp.Views.Forms
 				displayLink = null;
 			}
 
-			// detach all events before disposing
-			var controller = (ISKGLViewController)Element;
-			if (controller != null)
-			{
-				controller.SurfaceInvalidated -= OnSurfaceInvalidated;
-			}
-
 			base.Dispose(disposing);
 		}
 
-		private void SetupRenderLoop(bool oneShot)
+		protected override void SetupRenderLoop(bool oneShot)
 		{
 			// only start if we haven't already
 			if (displayLink != null)
@@ -85,54 +64,37 @@ namespace SkiaSharp.Views.Forms
 			if (!oneShot && !Element.HasRenderLoop)
 				return;
 
+			// if this is a one shot request, don't bother with the display link
+			if (oneShot)
+			{
+				var nativeView = Control;
+				nativeView?.BeginInvokeOnMainThread(() =>
+				{
+					if (nativeView.Handle != IntPtr.Zero)
+						nativeView.Display();
+				});
+				return;
+			}
+
 			// create the loop
 			displayLink = CADisplayLink.Create(() =>
 			{
-				var formsView = Control;
-				var nativeView = Element;
-
-				// redraw the view
-				formsView?.Display();
+				var nativeView = Control;
+				var formsView = Element;
 
 				// stop the render loop if this was a one-shot, or the views are disposed
-				if (formsView == null || nativeView == null || !nativeView.HasRenderLoop)
+				if (nativeView == null || formsView == null || nativeView.Handle == IntPtr.Zero || !formsView.HasRenderLoop)
 				{
 					displayLink.Invalidate();
 					displayLink.Dispose();
 					displayLink = null;
+					return;
 				}
+
+				// redraw the view
+				nativeView.Display();
 			});
 			displayLink.AddToRunLoop(NSRunLoop.Current, NSRunLoop.NSDefaultRunLoopMode);
-		}
-
-		// the user asked to repaint
-		private void OnSurfaceInvalidated(object sender, EventArgs eventArgs)
-		{
-			// if we aren't in a loop, then refresh once
-			if (!Element.HasRenderLoop)
-			{
-				SetupRenderLoop(true);
-			}
-		}
-
-		private class InternalView : SKNativeView
-		{
-			private readonly ISKGLViewController controller;
-
-			public InternalView(ISKGLViewController controller)
-			{
-				UserInteractionEnabled = false;
-
-				this.controller = controller;
-			}
-
-			public override void DrawInSurface(SKSurface surface, GRBackendRenderTargetDesc renderTarget)
-			{
-				base.DrawInSurface(surface, renderTarget);
-
-				// the control is being repainted, let the user know
-				controller.OnPaintSurface(new SKPaintGLSurfaceEventArgs(surface, renderTarget));
-			}
 		}
 	}
 }

@@ -1,114 +1,98 @@
-﻿//
-// Bindings for SKColorFilter
-//
-// Author:
-//   Matthew Leibowitz
-//
-// Copyright 2016 Xamarin Inc
-//
-using System;
+﻿using System;
 
 namespace SkiaSharp
 {
-	public class SKColorFilter : SKObject
+	// TODO: `FilterColor` may be useful
+
+	public unsafe class SKColorFilter : SKObject, ISKReferenceCounted
 	{
-		public const int MinCubeSize = 4;
-		public const int MaxCubeSize = 64;
+		public const int ColorMatrixSize = 20;
+		public const int TableMaxLength = 256;
 
-		public static bool IsValid3DColorCube(SKData cubeData, int cubeDimension)
-		{
-			var minMemorySize = 4 * cubeDimension * cubeDimension * cubeDimension;
-			return
-				(cubeDimension >= MinCubeSize) && (cubeDimension <= MaxCubeSize) &&
-				(null != cubeData) && (cubeData.Size >= minMemorySize);
-		}
-
-		[Preserve]
 		internal SKColorFilter(IntPtr handle, bool owns)
 			: base (handle, owns)
 		{
 		}
-		
-		protected override void Dispose(bool disposing)
-		{
-			if (Handle != IntPtr.Zero && OwnsHandle)
-			{
-				SkiaApi.sk_colorfilter_unref(Handle);
-			}
 
-			base.Dispose(disposing);
-		}
-		
-		public static SKColorFilter CreateXferMode(SKColor c, SKXferMode mode)
+		protected override void Dispose (bool disposing) =>
+			base.Dispose (disposing);
+
+		public static SKColorFilter CreateBlendMode(SKColor c, SKBlendMode mode)
 		{
-			return GetObject<SKColorFilter>(SkiaApi.sk_colorfilter_new_mode(c, mode));
+			return GetObject (SkiaApi.sk_colorfilter_new_mode((uint)c, mode));
 		}
 
 		public static SKColorFilter CreateLighting(SKColor mul, SKColor add)
 		{
-			return GetObject<SKColorFilter>(SkiaApi.sk_colorfilter_new_lighting(mul, add));
+			return GetObject (SkiaApi.sk_colorfilter_new_lighting((uint)mul, (uint)add));
 		}
 
 		public static SKColorFilter CreateCompose(SKColorFilter outer, SKColorFilter inner)
 		{
 			if (outer == null)
-				throw new ArgumentNullException("outer");
+				throw new ArgumentNullException(nameof(outer));
 			if (inner == null)
-				throw new ArgumentNullException("inner");
-			return GetObject<SKColorFilter>(SkiaApi.sk_colorfilter_new_compose(outer.Handle, inner.Handle));
-		}
-
-		public static SKColorFilter CreateColorCube(byte[] cubeData, int cubeDimension)
-		{
-			return CreateColorCube(new SKData(cubeData), cubeDimension);
-		}
-
-		public static SKColorFilter CreateColorCube(SKData cubeData, int cubeDimension)
-		{
-			if (!IsValid3DColorCube(cubeData, cubeDimension))
-				throw new ArgumentNullException("cubeData");
-			return GetObject<SKColorFilter>(SkiaApi.sk_colorfilter_new_color_cube(cubeData.Handle, cubeDimension));
+				throw new ArgumentNullException(nameof(inner));
+			return GetObject (SkiaApi.sk_colorfilter_new_compose(outer.Handle, inner.Handle));
 		}
 
 		public static SKColorFilter CreateColorMatrix(float[] matrix)
 		{
 			if (matrix == null)
-				throw new ArgumentNullException("matrix");
+				throw new ArgumentNullException(nameof(matrix));
 			if (matrix.Length != 20)
-				throw new ArgumentException("Matrix must have a length of 20.", "matrix");
-			return GetObject<SKColorFilter>(SkiaApi.sk_colorfilter_new_color_matrix(matrix));
+				throw new ArgumentException("Matrix must have a length of 20.", nameof(matrix));
+			fixed (float* m = matrix) {
+				return GetObject (SkiaApi.sk_colorfilter_new_color_matrix (m));
+			}
 		}
 
 		public static SKColorFilter CreateLumaColor()
 		{
-			return GetObject<SKColorFilter>(SkiaApi.sk_colorfilter_new_luma_color());
-		}
-
-		public static SKColorFilter CreateGamma(float gamma)
-		{
-			return GetObject<SKColorFilter>(SkiaApi.sk_colorfilter_new_gamma(gamma));
+			return GetObject (SkiaApi.sk_colorfilter_new_luma_color());
 		}
 
 		public static SKColorFilter CreateTable(byte[] table)
 		{
 			if (table == null)
-				throw new ArgumentNullException("table");
-			if (table.Length != SKColorTable.MaxLength)
-				throw new ArgumentException("Table must have a length of 256.", "table");
-			return GetObject<SKColorFilter>(SkiaApi.sk_colorfilter_new_table(table));
+				throw new ArgumentNullException(nameof(table));
+			if (table.Length != TableMaxLength)
+				throw new ArgumentException($"Table must have a length of {TableMaxLength}.", nameof(table));
+			fixed (byte* t = table) {
+				return GetObject (SkiaApi.sk_colorfilter_new_table (t));
+			}
 		}
 
 		public static SKColorFilter CreateTable(byte[] tableA, byte[] tableR, byte[] tableG, byte[] tableB)
 		{
-			if (tableA != null && tableA.Length != SKColorTable.MaxLength)
-				throw new ArgumentException("Table A must have a length of 256.", "tableA");
-			if (tableR != null && tableR.Length != SKColorTable.MaxLength)
-				throw new ArgumentException("Table R must have a length of 256.", "tableR");
-			if (tableG != null && tableG.Length != SKColorTable.MaxLength)
-				throw new ArgumentException("Table G must have a length of 256.", "tableG");
-			if (tableB != null && tableB.Length != SKColorTable.MaxLength)
-				throw new ArgumentException("Table B must have a length of 256.", "tableB");
-			return GetObject<SKColorFilter>(SkiaApi.sk_colorfilter_new_table_argb(tableA, tableR, tableG, tableB));
+			if (tableA != null && tableA.Length != TableMaxLength)
+				throw new ArgumentException($"Table A must have a length of {TableMaxLength}.", nameof(tableA));
+			if (tableR != null && tableR.Length != TableMaxLength)
+				throw new ArgumentException($"Table R must have a length of {TableMaxLength}.", nameof(tableR));
+			if (tableG != null && tableG.Length != TableMaxLength)
+				throw new ArgumentException($"Table G must have a length of {TableMaxLength}.", nameof(tableG));
+			if (tableB != null && tableB.Length != TableMaxLength)
+				throw new ArgumentException($"Table B must have a length of {TableMaxLength}.", nameof(tableB));
+
+			fixed (byte* a = tableA)
+			fixed (byte* r = tableR)
+			fixed (byte* g = tableG)
+			fixed (byte* b = tableB) {
+				return GetObject (SkiaApi.sk_colorfilter_new_table_argb (a, r, g, b));
+			}
 		}
+
+		public static SKColorFilter CreateHighContrast(SKHighContrastConfig config)
+		{
+			return GetObject (SkiaApi.sk_colorfilter_new_high_contrast(&config));
+		}
+
+		public static SKColorFilter CreateHighContrast(bool grayscale, SKHighContrastConfigInvertStyle invertStyle, float contrast)
+		{
+			return CreateHighContrast(new SKHighContrastConfig(grayscale, invertStyle, contrast));
+		}
+
+		internal static SKColorFilter GetObject (IntPtr handle) =>
+			GetOrAddObject (handle, (h, o) => new SKColorFilter (h, o));
 	}
 }

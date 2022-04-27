@@ -3,10 +3,12 @@
 
 # Repository-specific files
 output/
-binding/SkiaSharp.Portable/SkiaPortable.cs
-docs/SkiaSharp.tree
-docs/SkiaSharp.zip
+output-temp/
+tools/
+.vscode/
 *.VC.db
+**/Resources/Resource.designer.cs
+*.binlog
 
 # User-specific files
 *.suo
@@ -112,6 +114,9 @@ _TeamCity*
 
 # DotCover is a Code Coverage Tool
 *.dotCover
+
+# Coverlet code coverage
+coverage.cobertura.xml
 
 # NCrunch
 _NCrunch_*
@@ -245,6 +250,7 @@ _Pvt_Extensions
 
 ## Build generated
 build/
+!**/nuget/build/
 DerivedData
 
 ## Various settings
@@ -292,4 +298,3 @@ Carthage/Build
 
 fastlane/report.xml
 fastlane/screenshots
-.vscode/

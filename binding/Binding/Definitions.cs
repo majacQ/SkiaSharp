@@ -1,64 +1,12 @@
-//
-// Skia Definitions, enumerations and interop structures
-//
-// Author:
-//    Miguel de Icaza (miguel@xamarin.com)
-//
-// Copyright 2016 Xamarin Inc
-//
-// TODO: 
-//   Add more ToString, operators, convenience methods to various structures here (point, rect, etc)
-//   Sadly, the Rectangles are not binary compatible with the System.Drawing ones.
-//
-// SkMatrix could benefit from bringing some of the operators defined in C++
-//
-// Augmented primitives come from Mono:
-// Author:
-//   Mike Kestner (mkestner@speakeasy.net)
-//
-// Copyright (C) 2001 Mike Kestner
-// Copyright (C) 2004,2006 Novell, Inc (http://www.novell.com)
-//
-// Permission is hereby granted, free of charge, to any person obtaining
-// a copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to
-// permit persons to whom the Software is furnished to do so, subject to
-// the following conditions:
-// 
-// The above copyright notice and this permission notice shall be
-// included in all copies or substantial portions of the Software.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//
-using System;
-using System.Runtime.InteropServices;
-using System.Globalization;
+﻿using System;
+using System.ComponentModel;
 
-using GRBackendObject = System.IntPtr;
-using GRBackendContext = System.IntPtr;
- 	
 namespace SkiaSharp
 {
-	public enum SKCodecResult {
-		Success,
-		IncompleteInput,
-		InvalidConversion,
-		InvalidScale,
-		InvalidParameters,
-		InvalidInput,
-		CouldNotRewind,
-		Unimplemented,
-	}
-
-	public enum SKCodecOrigin {
+	[EditorBrowsable (EditorBrowsableState.Never)]
+	[Obsolete ("Use SKEncodedOrigin instead.")]
+	public enum SKCodecOrigin
+	{
 		TopLeft = 1,
 		TopRight = 2,
 		BottomRight = 3,
@@ -69,2522 +17,649 @@ namespace SkiaSharp
 		LeftBottom = 8,
 	}
 
-	public enum SKEncodedFormat {
-		Unknown,
-		Bmp,
-		Gif,
-		Ico,
-		Jpeg,
-		Png,
-		Wbmp,
-		Webp,
-		Pkm,
-		Ktx,
-		Astc,
-		Dng,
+	[EditorBrowsable (EditorBrowsableState.Never)]
+	[Obsolete ("Use SKTextEncoding instead.")]
+	public enum SKEncoding
+	{
+		Utf8 = 0,
+		Utf16 = 1,
+		Utf32 = 2,
 	}
 
-	public partial struct SKColor {
-		private const float EPSILON = 0.001f;
+	public enum SKFontStyleWeight
+	{
+		Invisible = 0,
+		Thin = 100,
+		ExtraLight = 200,
+		Light = 300,
+		Normal = 400,
+		Medium = 500,
+		SemiBold = 600,
+		Bold = 700,
+		ExtraBold = 800,
+		Black = 900,
+		ExtraBlack = 1000,
+	}
 
-		public static readonly SKColor Empty;
+	public enum SKFontStyleWidth
+	{
+		UltraCondensed = 1,
+		ExtraCondensed = 2,
+		Condensed = 3,
+		SemiCondensed = 4,
+		Normal = 5,
+		SemiExpanded = 6,
+		Expanded = 7,
+		ExtraExpanded = 8,
+		UltraExpanded = 9,
+	}
 
-		private uint color;
+	public enum SKColorType
+	{
+		Unknown = 0,
+		Alpha8 = 1,
+		Rgb565 = 2,
+		Argb4444 = 3,
+		Rgba8888 = 4,
+		Rgb888x = 5,
+		Bgra8888 = 6,
+		Rgba1010102 = 7,
+		Rgb101010x = 8,
+		Gray8 = 9,
+		RgbaF16 = 10,
+		RgbaF16Clamped = 11,
+		RgbaF32 = 12,
+		Rg88 = 13,
+		AlphaF16 = 14,
+		RgF16 = 15,
+		Alpha16 = 16,
+		Rg1616 = 17,
+		Rgba16161616 = 18,
+		Bgra1010102 = 19,
+		Bgr101010x = 20,
+	}
 
-		internal SKColor (uint value)
-		{
-			color = value;
-		}
+	public static partial class SkiaExtensions
+	{
+		public static bool IsBgr (this SKPixelGeometry pg) =>
+			pg == SKPixelGeometry.BgrHorizontal || pg == SKPixelGeometry.BgrVertical;
 
-		public SKColor (byte red, byte green, byte blue, byte alpha)
-		{
-			color = (uint)((alpha << 24) | (red << 16) | (green << 8) | blue);
-		}
+		public static bool IsRgb (this SKPixelGeometry pg) =>
+			pg == SKPixelGeometry.RgbHorizontal || pg == SKPixelGeometry.RgbVertical;
 
-		public SKColor (byte red, byte green, byte blue)
-		{
-			color = (uint)(0xff000000u | (red << 16) | (green << 8) | blue);
-		}
+		public static bool IsVertical (this SKPixelGeometry pg) =>
+			pg == SKPixelGeometry.BgrVertical || pg == SKPixelGeometry.RgbVertical;
 
-		public SKColor WithRed (byte red)
-		{
-			return new SKColor (red, Green, Blue, Alpha);
-		}
+		public static bool IsHorizontal (this SKPixelGeometry pg) =>
+			pg == SKPixelGeometry.BgrHorizontal || pg == SKPixelGeometry.RgbHorizontal;
 
-		public SKColor WithGreen (byte green)
-		{
-			return new SKColor (Red, green, Blue, Alpha);
-		}
-
-		public SKColor WithBlue (byte blue)
-		{
-			return new SKColor (Red, Green, blue, Alpha);
-		}
-
-		public SKColor WithAlpha (byte alpha)
-		{
-			return new SKColor (Red, Green, Blue, alpha);
-		}
-
-		public byte Alpha => (byte)((color >> 24) & 0xff);
-		public byte Red => (byte)((color >> 16) & 0xff);
-		public byte Green => (byte)((color >> 8) & 0xff);
-		public byte Blue => (byte)((color) & 0xff);
-
-		public float Hue {
-			get {
-				float h, s, v;
-				ToHsv (out h, out s, out v);
-				return h;
-			}
-		}
-		
-		public static SKColor FromHsl (float h, float s, float l, byte a = 255)
-		{
-			// convert from percentages
-			h = h / 360f;
-			s = s / 100f;
-			l = l / 100f;
-
-			// RGB results from 0 to 255
-			var r = l * 255f;
-			var g = l * 255f;
-			var b = l * 255f;
-
-			// HSL from 0 to 1
-			if (Math.Abs (s) > EPSILON)
+		[EditorBrowsable (EditorBrowsableState.Never)]
+		[Obsolete]
+		public static SKTextEncoding ToTextEncoding (this SKEncoding encoding) =>
+			encoding switch
 			{
-				float v2;
-				if (l < 0.5f)
-					v2 = l * (1f + s);
-				else
-					v2 = (l + s) - (s * l);
+				SKEncoding.Utf8 => SKTextEncoding.Utf8,
+				SKEncoding.Utf16 => SKTextEncoding.Utf16,
+				SKEncoding.Utf32 => SKTextEncoding.Utf32,
+				_ => throw new ArgumentOutOfRangeException (nameof (encoding)),
+			};
 
-				var v1 = 2f * l - v2;
-
-				r = 255 * HueToRgb (v1, v2, h + (1f / 3f));
-				g = 255 * HueToRgb (v1, v2, h);
-				b = 255 * HueToRgb (v1, v2, h - (1f / 3f));
-			}
-
-			return new SKColor ((byte)r, (byte)g, (byte)b, a);
-		}
-
-		private static float HueToRgb (float v1, float v2, float vH)
-		{
-			if (vH < 0f)
-				vH += 1f;
-			if (vH > 1f)
-				vH -= 1f;
-
-			if ((6f * vH) < 1f)
-				return (v1 + (v2 - v1) * 6f * vH);
-			if ((2f * vH) < 1f)
-				return (v2);
-			if ((3f * vH) < 2f)
-				return (v1 + (v2 - v1) * ((2f / 3f) - vH) * 6f);
-			return (v1);
-		}
-
-		public static SKColor FromHsv(float h, float s, float v, byte a = 255)
-		{
-			// convert from percentages
-			h = h / 360f;
-			s = s / 100f;
-			v = v / 100f;
-
-			// RGB results from 0 to 255
-			var r = v;
-			var g = v;
-			var b = v;
-
-			// HSL from 0 to 1
-			if (Math.Abs (s) > EPSILON)
+		[EditorBrowsable (EditorBrowsableState.Never)]
+		[Obsolete]
+		internal static SKEncoding ToEncoding (this SKTextEncoding encoding) =>
+			encoding switch
 			{
-				h = h * 6f;
-				if (Math.Abs (h - 6f) < EPSILON)
-					h = 0f; // H must be < 1
+				SKTextEncoding.Utf8 => SKEncoding.Utf8,
+				SKTextEncoding.Utf16 => SKEncoding.Utf16,
+				SKTextEncoding.Utf32 => SKEncoding.Utf32,
+				_ => throw new ArgumentOutOfRangeException (nameof (encoding)),
+			};
 
-				var hInt = (int)h;
-				var v1 = v * (1f - s);
-				var v2 = v * (1f - s * (h - hInt));
-				var v3 = v * (1f - s * (1f - (h - hInt)));
-
-				if (hInt == 0)
-				{
-					r = v;
-					g = v3;
-					b = v1;
-				}
-				else if (hInt == 1)
-				{
-					r = v2;
-					g = v;
-					b = v1;
-				}
-				else if (hInt == 2)
-				{
-					r = v1;
-					g = v;
-					b = v3;
-				}
-				else if (hInt == 3)
-				{
-					r = v1;
-					g = v2;
-					b = v;
-				}
-				else if (hInt == 4)
-				{
-					r = v3;
-					g = v1;
-					b = v;
-				}
-				else
-				{
-					r = v;
-					g = v1;
-					b = v2;
-				}
-			}
-
-			// RGB results from 0 to 255
-			r = r * 255f;
-			g = g * 255f;
-			b = b * 255f;
-
-			return new SKColor ((byte)r, (byte)g, (byte)b, a);
-		}
-
-		public void ToHsl (out float h, out float s, out float l)
-		{
-			// RGB from 0 to 255
-			var r = (Red / 255f);
-			var g = (Green / 255f);
-			var b = (Blue / 255f);
-
-			var min = Math.Min (Math.Min (r, g), b); // min value of RGB
-			var max = Math.Max (Math.Max (r, g), b); // max value of RGB
-			var delta = max - min; // delta RGB value
-
-			// default to a gray, no chroma...
-			h = 0f;
-			s = 0f;
-			l = (max + min) / 2f;
-
-			// chromatic data...
-			if (Math.Abs (delta) > EPSILON)
+		// SkImageInfo.cpp - SkColorTypeBytesPerPixel
+		public static int GetBytesPerPixel (this SKColorType colorType) =>
+			colorType switch
 			{
-				if (l < 0.5f)
-					s = delta / (max + min);
-				else
-					s = delta / (2f - max - min);
+				// 0
+				SKColorType.Unknown => 0,
+				// 1
+				SKColorType.Alpha8 => 1,
+				SKColorType.Gray8 => 1,
+				// 2
+				SKColorType.Rgb565 => 2,
+				SKColorType.Argb4444 => 2,
+				SKColorType.Rg88 => 2,
+				SKColorType.Alpha16 => 2,
+				SKColorType.AlphaF16 => 2,
+				// 4
+				SKColorType.Bgra8888 => 4,
+				SKColorType.Bgra1010102 => 4,
+				SKColorType.Bgr101010x => 4,
+				SKColorType.Rgba8888 => 4,
+				SKColorType.Rgb888x => 4,
+				SKColorType.Rgba1010102 => 4,
+				SKColorType.Rgb101010x => 4,
+				SKColorType.Rg1616 => 4,
+				SKColorType.RgF16 => 4,
+				// 8
+				SKColorType.RgbaF16Clamped => 8,
+				SKColorType.RgbaF16 => 8,
+				SKColorType.Rgba16161616 => 8,
+				// 16
+				SKColorType.RgbaF32 => 16,
+				//
+				_ => throw new ArgumentOutOfRangeException (nameof (colorType)),
+			};
 
-				var deltaR = (((max - r) / 6f) + (delta / 2f)) / delta;
-				var deltaG = (((max - g) / 6f) + (delta / 2f)) / delta;
-				var deltaB = (((max - b) / 6f) + (delta / 2f)) / delta;
-
-				if (Math.Abs (r - max) < EPSILON) // r == max
-					h = deltaB - deltaG;
-				else if (Math.Abs (g - max) < EPSILON) // g == max
-					h = (1f / 3f) + deltaR - deltaB;
-				else // b == max
-					h = (2f / 3f) + deltaG - deltaR;
-
-				if (h < 0f)
-					h += 1f;
-				if (h > 1f)
-					h -= 1f;
-			}
-
-			// convert to percentages
-			h = h * 360f;
-			s = s * 100f;
-			l = l * 100f;
-		}
-
-		public void ToHsv (out float h, out float s, out float v)
+		// SkImageInfo.cpp - SkColorTypeValidateAlphaType
+		public static SKAlphaType GetAlphaType (this SKColorType colorType, SKAlphaType alphaType = SKAlphaType.Premul)
 		{
-			// RGB from 0 to 255
-			var r = (Red / 255f);
-			var g = (Green / 255f);
-			var b = (Blue / 255f);
-
-			var min = Math.Min (Math.Min (r, g), b); // min value of RGB
-			var max = Math.Max (Math.Max (r, g), b); // max value of RGB
-			var delta = max - min; // delta RGB value 
-
-			// default to a gray, no chroma...
-			h = 0;
-			s = 0;
-			v = max;
-
-			// chromatic data...
-			if (Math.Abs (delta) > EPSILON)
-			{
-				s = delta / max;
-
-				var deltaR = (((max - r) / 6f) + (delta / 2f)) / delta;
-				var deltaG = (((max - g) / 6f) + (delta / 2f)) / delta;
-				var deltaB = (((max - b) / 6f) + (delta / 2f)) / delta;
-
-				if (Math.Abs (r - max) < EPSILON) // r == max
-					h = deltaB - deltaG;
-				else if (Math.Abs (g - max) < EPSILON) // g == max
-					h = (1f / 3f) + deltaR - deltaB;
-				else // b == max
-					h = (2f / 3f) + deltaG - deltaR;
-
-				if (h < 0f)
-					h += 1f;
-				if (h > 1f)
-					h -= 1f;
-			}
-
-			// convert to percentages
-			h = h * 360f;
-			s = s * 100f;
-			v = v * 100f;
-		}
-
-		public override string ToString ()
-		{
-			return string.Format (CultureInfo.InvariantCulture, "#{0:x2}{1:x2}{2:x2}{3:x2}",  Alpha, Red, Green, Blue);
-		}
-
-		public override bool Equals (object other)
-		{
-			if (!(other is SKColor))
-				return false;
-
-			var c = (SKColor) other;
-			return c.color == this.color;
-		}
-
-		public override int GetHashCode ()
-		{
-			return (int) color;
-		}
-
-		public static implicit operator SKColor (uint color)
-		{
-			return new SKColor (color);
-		}
-
-		public static explicit operator uint (SKColor color)
-		{
-			return color.color;
-		}
-
-		public static bool operator == (SKColor left, SKColor right)
-		{
-			return left.color == right.color;
-		}
-
-		public static bool operator != (SKColor left, SKColor right)
-		{
-			return !(left == right);
-		}
-	}
-
-	[Flags]
-	public enum SKTypefaceStyle {
-		Normal     = 0,
-		Bold       = 0x01,
-		Italic     = 0x02,
-		BoldItalic = 0x03
-	}
-
-	public enum SKFontStyleWeight {
-		Invisible   =   0,
-		Thin        = 100,
-		ExtraLight  = 200,
-		Light       = 300,
-		Normal      = 400,
-		Medium      = 500,
-		SemiBold    = 600,
-		Bold        = 700,
-		ExtraBold   = 800,
-		Black       = 900,
-		ExtraBlack  =1000,
-	};
-
-	public enum SKFontStyleWidth {
-		UltraCondensed   = 1,
-		ExtraCondensed   = 2,
-		Condensed        = 3,
-		SemiCondensed    = 4,
-		Normal           = 5,
-		SemiExpanded     = 6,
-		Expanded         = 7,
-		ExtraExpanded    = 8,
-		UltaExpanded     = 9
-	};
-
-	public enum SKFontStyleSlant {
-		Upright = 0,
-		Italic  = 1,
-		Oblique = 2,
-	};
-
-	public enum SKPointMode {
-		Points, Lines, Polygon
-	}
-
-	public enum SKPathDirection {
-		Clockwise,
-		CounterClockwise
-	}
-
-	public enum SKPathArcSize {
-		Small,
-		Large
-	}
-
-	public enum SKPathFillType
-	{
-		Winding,
-		EvenOdd,
-		InverseWinding,
-		InverseEvenOdd
-	}
-
-	public enum SKColorType {
-		Unknown,
-		Alpha8,
-		Rgb565,
-		Argb4444,
-		Rgba8888,
-		Bgra8888,
-		Index8,
-		Gray8,
-		RgbaF16
-	}
-
-	public enum SKColorProfileType {
-		Linear,
-		SRGB
-	}
-
-	public enum SKAlphaType {
-		Unknown,
-		Opaque,
-		Premul,
-		Unpremul
-	}
-
-	public enum SKShaderTileMode {
-		Clamp, Repeat, Mirror
-	}
-
-	public enum SKBlurStyle {
-		Normal, Solid, Outer, Inner
-	}
-
-	public enum SKXferMode {
-		Clear,
-		Src,
-		Dst,
-		SrcOver,
-		DstOver,
-		SrcIn,
-		DstIn,
-		SrcOut,
-		DstOut,
-		SrcATop,
-		DstATop,
-		Xor,
-		Plus,
-		Modulate,
-		Screen,
-		Overlay,
-		Darken,
-		Lighten,
-		ColorDodge,
-		ColorBurn,
-		HardLight,
-		SoftLight,
-		Difference,
-		Exclusion,
-		Multiply,
-		Hue,
-		Saturation,
-		Color,
-		Luminosity,
-	}
-
-	public enum SKClipType {
-		Intersect, Difference 
-	}
-
-	public enum SKPixelGeometry {
-		Unknown,
-		RgbHorizontal,
-		BgrHorizontal,
-		RgbVertical,
-		BgrVertical
-	}
-
-	[Flags]
-	public enum SKSurfacePropsFlags {
-		UseDeviceIndependentFonts = 1 << 0,
-	}
-
-	public enum SKEncoding {
-		Utf8, Utf16, Utf32
-	}
-
-	public static class SkiaExtensions {
-		public static bool IsBgr (this SKPixelGeometry pg)
-		{
-			return pg == SKPixelGeometry.BgrHorizontal || pg == SKPixelGeometry.BgrVertical;
-		}
-
-		public static bool IsRgb (this SKPixelGeometry pg)
-		{
-			return pg == SKPixelGeometry.RgbHorizontal || pg == SKPixelGeometry.RgbVertical;
-		}
-
-		public static bool IsVertical (this SKPixelGeometry pg)
-		{
-			return pg == SKPixelGeometry.BgrVertical || pg == SKPixelGeometry.RgbVertical;
-		}
-
-		public static bool IsHorizontal (this SKPixelGeometry pg)
-		{
-			return pg == SKPixelGeometry.BgrHorizontal || pg == SKPixelGeometry.RgbHorizontal;
-		}
-	}
-
-	public enum SKStrokeCap {
-		Butt, Round, Square
-	}
-
-	public enum SKStrokeJoin {
-		Mitter, Round, Bevel
-	}
-
-	public enum SKTextAlign {
-		Left, Center, Right
-	}
-
-	public enum SKTextEncoding {
-		Utf8, Utf16, Utf32, GlyphId
-	}
-
-	public enum SKFilterQuality
-	{
-		None,
-		Low,
-		Medium,
-		High
-	}
-
-	[Flags]
-	public enum SKCropRectFlags
-	{
-		HasLeft = 0x01,
-		HasTop = 0x02,
-		HasWidth = 0x04,
-		HasHeight = 0x08,
-		HasAll = 0x0F,
-	}
-
-	public enum SKDropShadowImageFilterShadowMode
-	{
-		DrawShadowAndForeground,
-		DrawShadowOnly,
-	}
-
-	public enum SKDisplacementMapEffectChannelSelectorType
-	{
-		Unknown,
-		R,
-		G,
-		B,
-		A,
-	}
-
-	public enum SKMatrixConvolutionTileMode
-	{
-		Clamp,
-		Repeat,
-		ClampToBlack,
-	}
-
-	public enum SKPaintStyle
-	{
-		Fill,
-		Stroke,
-		StrokeAndFill,
-	}
-
-	public enum SKPaintHinting
-	{
-		NoHinting = 0,
-		Slight = 1,
-		Normal = 2,
-		Full = 3
-	}
-
-	public enum SKRegionOperation
-	{
-		Difference,
-		Intersect,
-		Union,
-		XOR,
-		ReverseDifference,
-		Replace,
-	}
-
-	[StructLayout(LayoutKind.Sequential)]
-	public struct SKImageInfo {
-		public static SKImageInfo Empty;
-		public static SKColorType PlatformColorType;
-
-		private int width;
-		private int height;
-		private SKColorType colorType;
-		private SKAlphaType alphaType;
-
-		static SKImageInfo ()
-		{
-#if WINDOWS_UWP
-			var isUnix = false;
-#else
-			var isUnix = Environment.OSVersion.Platform == PlatformID.MacOSX || Environment.OSVersion.Platform == PlatformID.Unix;
-#endif
-			if (isUnix) {
-				// Unix depends on the CPU endianess, but we use RGBA
-				PlatformColorType = SKColorType.Rgba8888;
-			} else {
-				// Windows is always BGRA
-				PlatformColorType = SKColorType.Bgra8888;
-			}
-		}
-
-		public int Width {
-			get { return width; }
-			set { width = value; }
-		}
-
-		public int Height {
-			get { return height; }
-			set { height = value; }
-		}
-
-		public SKColorType ColorType {
-			get { return colorType; }
-			set { colorType = value; }
-		}
-
-		public SKAlphaType AlphaType {
-			get { return alphaType; }
-			set { alphaType = value; }
-		}
-
-		public SKImageInfo (int width, int height)
-		{
-			this.width = width;
-			this.height = height;
-			this.colorType = PlatformColorType;
-			this.alphaType = SKAlphaType.Premul;
-		}
-
-		public SKImageInfo (int width, int height, SKColorType colorType)
-		{
-			this.width = width;
-			this.height = height;
-			this.colorType = colorType;
-			this.alphaType = SKAlphaType.Premul;
-		}
-
-		public SKImageInfo (int width, int height, SKColorType colorType, SKAlphaType alphaType)
-		{
-			this.width = width;
-			this.height = height;
-			this.colorType = colorType;
-			this.alphaType = alphaType;
-		}
-
-		public int BytesPerPixel {
-			get {
-				switch (ColorType) {
+			switch (colorType) {
 				case SKColorType.Unknown:
-					return 0;
+					alphaType = SKAlphaType.Unknown;
+					break;
+
+				// opaque or premul
 				case SKColorType.Alpha8:
-				case SKColorType.Index8:
-				case SKColorType.Gray8:
-					return 1;
-				case SKColorType.Rgb565:
+				case SKColorType.Alpha16:
+				case SKColorType.AlphaF16:
+					if (SKAlphaType.Unpremul == alphaType) {
+						alphaType = SKAlphaType.Premul;
+					}
+					break;
+
+				// any
 				case SKColorType.Argb4444:
-					return 2;
-				case SKColorType.Bgra8888:
 				case SKColorType.Rgba8888:
-					return 4;
+				case SKColorType.Bgra8888:
+				case SKColorType.Rgba1010102:
+				case SKColorType.Bgra1010102:
+				case SKColorType.RgbaF16Clamped:
 				case SKColorType.RgbaF16:
-					return 8;
-				}
-				throw new ArgumentOutOfRangeException ("ColorType");
+				case SKColorType.RgbaF32:
+				case SKColorType.Rgba16161616:
+					break;
+
+				// opaque
+				case SKColorType.Gray8:
+				case SKColorType.Rg88:
+				case SKColorType.Rg1616:
+				case SKColorType.RgF16:
+				case SKColorType.Rgb565:
+				case SKColorType.Rgb888x:
+				case SKColorType.Rgb101010x:
+				case SKColorType.Bgr101010x:
+					alphaType = SKAlphaType.Opaque;
+					break;
+
+				default:
+					throw new ArgumentOutOfRangeException (nameof (colorType));
 			}
-		}
 
-		public int BytesSize {
-			get { return Width * Height * BytesPerPixel; }
-		}
-
-		public int RowBytes {
-			get { return Width * BytesPerPixel; }
-		}
-
-		public bool IsEmpty {
-			get { return Width <= 0 || Height <= 0; }
-		}
-
-		public bool IsOpaque {
-			get { return AlphaType == SKAlphaType.Opaque; }
-		}
-
-		public SKSizeI Size {
-			get { return new SKSizeI (Width, Height); }
-		}
-
-		public SKRectI Rect {
-			get { return SKRectI.Create (Width, Height); }
+			return alphaType;
 		}
 	}
 
-	[StructLayout(LayoutKind.Sequential)]
-	public struct SKSurfaceProps {
-		private SKPixelGeometry pixelGeometry;
-		private SKSurfacePropsFlags flags;
+	[EditorBrowsable (EditorBrowsableState.Never)]
+	[Obsolete ("Use SKSurfaceProperties instead.")]
+	public struct SKSurfaceProps : IEquatable<SKSurfaceProps>
+	{
+		public SKPixelGeometry PixelGeometry { readonly get; set; }
+		public SKSurfacePropsFlags Flags { readonly get; set; }
 
-		public SKPixelGeometry PixelGeometry {
-			get { return pixelGeometry; }
-			set { pixelGeometry = value; }
-		}
+		public readonly bool Equals (SKSurfaceProps obj) =>
+			PixelGeometry == obj.PixelGeometry &&
+			Flags == obj.Flags;
 
-		public SKSurfacePropsFlags Flags {
-			get { return flags; }
-			set { flags = value; }
+		public readonly override bool Equals (object obj) =>
+			obj is SKSurfaceProps f && Equals (f);
+
+		public static bool operator == (SKSurfaceProps left, SKSurfaceProps right) =>
+			left.Equals (right);
+
+		public static bool operator != (SKSurfaceProps left, SKSurfaceProps right) =>
+			!left.Equals (right);
+
+		public readonly override int GetHashCode ()
+		{
+			var hash = new HashCode ();
+			hash.Add (PixelGeometry);
+			hash.Add (Flags);
+			return hash.ToHashCode ();
 		}
 	}
 
-	public enum SKZeroInitialized {
-		Yes,
-		No,
-	}
-
-	[StructLayout(LayoutKind.Sequential)]
-	public struct SKCodecOptions {
+	public struct SKCodecOptions : IEquatable<SKCodecOptions>
+	{
 		public static readonly SKCodecOptions Default;
-
-		private SKZeroInitialized zeroInitialized;
-		private SKRectI subset;
-		[MarshalAs(UnmanagedType.I1)]
-		private bool hasSubset;
 
 		static SKCodecOptions ()
 		{
 			Default = new SKCodecOptions (SKZeroInitialized.No);
 		}
-		public SKCodecOptions (SKZeroInitialized zeroInitialized) {
-			this.zeroInitialized = zeroInitialized;
-			this.subset = SKRectI.Empty;
-			this.hasSubset = false;
+
+		public SKCodecOptions (SKZeroInitialized zeroInitialized)
+		{
+			ZeroInitialized = zeroInitialized;
+			Subset = null;
+			FrameIndex = 0;
+			PriorFrame = -1;
 		}
-		public SKCodecOptions (SKZeroInitialized zeroInitialized, SKRectI subset) {
-			this.zeroInitialized = zeroInitialized;
-			this.subset = subset;
-			this.hasSubset = true;
+		public SKCodecOptions (SKZeroInitialized zeroInitialized, SKRectI subset)
+		{
+			ZeroInitialized = zeroInitialized;
+			Subset = subset;
+			FrameIndex = 0;
+			PriorFrame = -1;
 		}
-		public SKZeroInitialized ZeroInitialized{
-			get { return zeroInitialized; }
-			set { zeroInitialized = value; }
+		public SKCodecOptions (SKRectI subset)
+		{
+			ZeroInitialized = SKZeroInitialized.No;
+			Subset = subset;
+			FrameIndex = 0;
+			PriorFrame = -1;
+		}
+		public SKCodecOptions (int frameIndex)
+		{
+			ZeroInitialized = SKZeroInitialized.No;
+			Subset = null;
+			FrameIndex = frameIndex;
+			PriorFrame = -1;
+		}
+		public SKCodecOptions (int frameIndex, int priorFrame)
+		{
+			ZeroInitialized = SKZeroInitialized.No;
+			Subset = null;
+			FrameIndex = frameIndex;
+			PriorFrame = priorFrame;
 		}
 
-		public SKRectI Subset{
-			get { return subset; }
-			set { subset = value; }
+		public SKZeroInitialized ZeroInitialized { readonly get; set; }
+		public SKRectI? Subset { readonly get; set; }
+		public readonly bool HasSubset => Subset != null;
+		public int FrameIndex { readonly get; set; }
+		public int PriorFrame { readonly get; set; }
+
+		[EditorBrowsable (EditorBrowsableState.Never)]
+		[Obsolete]
+		public SKTransferFunctionBehavior PremulBehavior {
+			readonly get => SKTransferFunctionBehavior.Respect;
+			set { }
 		}
 
-		public bool HasSubset{
-			get { return hasSubset; }
-			set { hasSubset = value; }
+		public readonly bool Equals (SKCodecOptions obj) =>
+			ZeroInitialized == obj.ZeroInitialized &&
+			Subset == obj.Subset &&
+			FrameIndex == obj.FrameIndex &&
+			PriorFrame == obj.PriorFrame;
+
+		public readonly override bool Equals (object obj) =>
+			obj is SKCodecOptions f && Equals (f);
+
+		public static bool operator == (SKCodecOptions left, SKCodecOptions right) =>
+			left.Equals (right);
+
+		public static bool operator != (SKCodecOptions left, SKCodecOptions right) =>
+			!left.Equals (right);
+
+		public readonly override int GetHashCode ()
+		{
+			var hash = new HashCode ();
+			hash.Add (ZeroInitialized);
+			hash.Add (Subset);
+			hash.Add (FrameIndex);
+			hash.Add (PriorFrame);
+			return hash.ToHashCode ();
 		}
 	}
 
-	[StructLayout(LayoutKind.Sequential)]
-	public struct SKPoint {
-		private float x, y;
-
-		public static readonly SKPoint Empty;
-
-		public static SKPoint operator + (SKPoint pt, SKSizeI sz)
-		{
-			return new SKPoint (pt.X + sz.Width, pt.Y + sz.Height);
-		}
-		public static SKPoint operator + (SKPoint pt, SKSize sz)
-		{
-			return new SKPoint (pt.X + sz.Width, pt.Y + sz.Height);
-		}
-		
-		public static SKPoint operator + (SKPoint pt, SKPointI sz)
-		{
-			return new SKPoint (pt.X + sz.X, pt.Y + sz.Y);
-		}
-		public static SKPoint operator + (SKPoint pt, SKPoint sz)
-		{
-			return new SKPoint (pt.X + sz.X, pt.Y + sz.Y);
-		}
-		
-		public static bool operator == (SKPoint left, SKPoint right)
-		{
-			return ((left.X == right.X) && (left.Y == right.Y));
-		}
-		
-		public static bool operator != (SKPoint left, SKPoint right)
-		{
-			return !(left == right);
-		}
-		
-		public static SKPoint operator - (SKPoint pt, SKSizeI sz)
-		{
-			return new SKPoint (pt.X - sz.Width, pt.Y - sz.Height);
-		}
-		public static SKPoint operator - (SKPoint pt, SKSize sz)
-		{
-			return new SKPoint (pt.X - sz.Width, pt.Y - sz.Height);
-		}
-		
-		public static SKPoint operator - (SKPoint pt, SKPointI sz)
-		{
-			return new SKPoint (pt.X - sz.X, pt.Y - sz.Y);
-		}
-		public static SKPoint operator - (SKPoint pt, SKPoint sz)
-		{
-			return new SKPoint (pt.X - sz.X, pt.Y - sz.Y);
-		}
-		
-		public SKPoint (float x, float y)
-		{
-			this.x = x;
-			this.y = y;
-		}
-
-		public bool IsEmpty {
-			get {
-				return ((x == 0.0) && (y == 0.0));
-			}
-		}
-
-		public float X {
-			get {
-				return x;
-			}
-			set {
-				x = value;
-			}
-		}
-
-		public float Y {
-			get {
-				return y;
-			}
-			set {
-				y = value;
-			}
-		}
-
-		public override bool Equals (object obj)
-		{
-			if (!(obj is SKPoint))
-				return false;
-
-			return (this == (SKPoint) obj);
-		}
-
-		public override int GetHashCode ()
-		{
-			return (int) x ^ (int) y;
-		}
-
-		public override string ToString ()
-		{
-			return String.Format (
-				"{{X={0}, Y={1}}}", 
-				x.ToString (CultureInfo.CurrentCulture),
-				y.ToString (CultureInfo.CurrentCulture));
-		}
-
-		public static SKPoint Add (SKPoint pt, SKSizeI sz) => pt + sz;
-		public static SKPoint Add (SKPoint pt, SKSize sz) => pt + sz;
-		public static SKPoint Add (SKPoint pt, SKPointI sz) => pt + sz;
-		public static SKPoint Add (SKPoint pt, SKPoint sz) => pt + sz;
-
-		public static SKPoint Subtract (SKPoint pt, SKSizeI sz) => pt - sz;
-		public static SKPoint Subtract (SKPoint pt, SKSize sz) => pt - sz;
-		public static SKPoint Subtract (SKPoint pt, SKPointI sz) => pt - sz;
-		public static SKPoint Subtract (SKPoint pt, SKPoint sz) => pt - sz;
-	}
-
-	[StructLayout(LayoutKind.Sequential)]
-	public struct SKPointI {
-		private int x, y;
-
-		public static readonly SKPointI Empty;
-
-		public static SKPointI Ceiling (SKPoint value)
-		{
-			int x, y;
-			checked {
-				x = (int) Math.Ceiling (value.X);
-				y = (int) Math.Ceiling (value.Y);
-			}
-
-			return new SKPointI (x, y);
-		}
-
-		public static SKPointI Round (SKPoint value)
-		{
-			int x, y;
-			checked {
-				x = (int) Math.Round (value.X);
-				y = (int) Math.Round (value.Y);
-			}
-
-			return new SKPointI (x, y);
-		}
-
-		public static SKPointI Truncate (SKPoint value)
-		{
-			int x, y;
-			checked {
-				x = (int) value.X;
-				y = (int) value.Y;
-			}
-
-			return new SKPointI (x, y);
-		}
-
-		public static SKPointI operator + (SKPointI pt, SKSizeI sz)
-		{
-			return new SKPointI (pt.X + sz.Width, pt.Y + sz.Height);
-		}
-		
-		public static SKPointI operator + (SKPointI pt, SKPointI sz)
-		{
-			return new SKPointI (pt.X + sz.X, pt.Y + sz.Y);
-		}
-		
-		public static bool operator == (SKPointI left, SKPointI right)
-		{
-			return ((left.X == right.X) && (left.Y == right.Y));
-		}
-		
-		public static bool operator != (SKPointI left, SKPointI right)
-		{
-			return !(left == right);
-		}
-		
-		public static SKPointI operator - (SKPointI pt, SKSizeI sz)
-		{
-			return new SKPointI (pt.X - sz.Width, pt.Y - sz.Height);
-		}
-		
-		public static SKPointI operator - (SKPointI pt, SKPointI sz)
-		{
-			return new SKPointI (pt.X - sz.X, pt.Y - sz.Y);
-		}
-		
-		public static explicit operator SKSizeI (SKPointI p)
-		{
-			return new SKSizeI (p.X, p.Y);
-		}
-
-		public static implicit operator SKPoint (SKPointI p)
-		{
-			return new SKPoint (p.X, p.Y);
-		}
-
-		public SKPointI (SKSizeI sz)
-		{
-			x = sz.Width;
-			y = sz.Height;
-		}
-
-		public SKPointI (int x, int y)
-		{
-			this.x = x;
-			this.y = y;
-		}
-
-		public bool IsEmpty {
-			get {
-				return ((x == 0) && (y == 0));
-			}
-		}
-
-		public int X {
-			get {
-				return x;
-			}
-			set {
-				x = value;
-			}
-		}
-
-		public int Y {
-			get {
-				return y;
-			}
-			set {
-				y = value;
-			}
-		}
-
-		public override bool Equals (object obj)
-		{
-			if (!(obj is SKPointI))
-				return false;
-
-			return (this == (SKPointI) obj);
-		}
-
-		public override int GetHashCode ()
-		{
-			return x^y;
-		}
-
-		public void Offset (int dx, int dy)
-		{
-			x += dx;
-			y += dy;
-		}
-
-		public override string ToString ()
-		{
-			return string.Format (
-				"{{X={0},Y={1}}}", 
-				x.ToString (CultureInfo.InvariantCulture), 
-				y.ToString (CultureInfo.InvariantCulture));
-		}
-
-		public void Offset (SKPointI p)
-		{
-			Offset (p.X, p.Y);
-		}
-
-		public static SKPointI Add (SKPointI pt, SKSizeI sz) => pt + sz;
-		public static SKPointI Add (SKPointI pt, SKPointI sz) => pt + sz;
-
-		public static SKPointI Subtract (SKPointI pt, SKSizeI sz) => pt - sz;
-		public static SKPointI Subtract (SKPointI pt, SKPointI sz) => pt - sz;
-	}
-
-	[StructLayout(LayoutKind.Sequential)]
-	public struct SKPoint3
+	public partial struct SKFontMetrics
 	{
-		public static readonly SKPoint3 Empty;
-		private float x, y, z;
+		private const uint flagsUnderlineThicknessIsValid = (1U << 0);
+		private const uint flagsUnderlinePositionIsValid = (1U << 1);
+		private const uint flagsStrikeoutThicknessIsValid = (1U << 2);
+		private const uint flagsStrikeoutPositionIsValid = (1U << 3);
 
-		public float X {
-			get {
-				return x;
-			}
-			set {
-				x = value;
-			}
-		}
+		public readonly float Top => fTop;
 
-		public float Y {
-			get {
-				return y;
-			}
-			set {
-				y = value;
-			}
-		}
+		public readonly float Ascent => fAscent;
 
-		public float Z {
-			get {
-				return z;
-			}
-			set {
-				z = value;
-			}
-		}
+		public readonly float Descent => fDescent;
 
-		public SKPoint3(float x, float y, float z)
-		{
-			this.x = x;
-			this.y = y;
-			this.z = z;
-		}
+		public readonly float Bottom => fBottom;
 
-		public static SKPoint3 operator + (SKPoint3 pt, SKPoint3 sz)
-		{
-			return new SKPoint3 (pt.X + sz.X, pt.Y + sz.Y, pt.Z + sz.Z);
-		}
-		
-		public static SKPoint3 operator - (SKPoint3 pt, SKPoint3 sz)
-		{
-			return new SKPoint3 (pt.X - sz.X, pt.Y - sz.Y, pt.Z - sz.Z);
-		}
-		
-		public static bool operator == (SKPoint3 left, SKPoint3 right)
-		{
-			return ((left.x == right.x) && (left.y == right.y) && (left.z == right.z));
-		}
-		
-		public static bool operator != (SKPoint3 left, SKPoint3 right)
-		{
-			return !(left == right);
-		}
+		public readonly float Leading => fLeading;
 
-		public bool IsEmpty {
-			get {
-				return ((x == 0.0) && (y == 0.0) && (z==0.0));
-			}
-		}
+		public readonly float AverageCharacterWidth => fAvgCharWidth;
 
-		public override bool Equals (object obj)
-		{
-			if (!(obj is SKPoint3))
-				return false;
+		public readonly float MaxCharacterWidth => fMaxCharWidth;
 
-			return (this == (SKPoint3) obj);
-		}
+		public readonly float XMin => fXMin;
 
-		public override int GetHashCode ()
-		{
-			return (int) x ^ (int) y ^ (int) z;
-		}
+		public readonly float XMax => fXMax;
 
-		public override string ToString ()
-		{
-			return String.Format ("{{X={0}, Y={1}, Z={2}}}",
-					      x.ToString (CultureInfo.CurrentCulture),
-					      y.ToString (CultureInfo.CurrentCulture),
-					      z.ToString (CultureInfo.CurrentCulture)
-				);
-		}
+		public readonly float XHeight => fXHeight;
 
-		public static SKPoint3 Add (SKPoint3 pt, SKPoint3 sz) => pt + sz;
-		
-		public static SKPoint3 Subtract (SKPoint3 pt, SKPoint3 sz) => pt - sz;
+		public readonly float CapHeight => fCapHeight;
+
+		public readonly float? UnderlineThickness => GetIfValid (fUnderlineThickness, flagsUnderlineThicknessIsValid);
+		public readonly float? UnderlinePosition => GetIfValid (fUnderlinePosition, flagsUnderlinePositionIsValid);
+		public readonly float? StrikeoutThickness => GetIfValid (fStrikeoutThickness, flagsStrikeoutThicknessIsValid);
+		public readonly float? StrikeoutPosition => GetIfValid (fStrikeoutPosition, flagsStrikeoutPositionIsValid);
+
+		private readonly float? GetIfValid (float value, uint flag) =>
+			(fFlags & flag) == flag ? value : (float?)null;
 	}
 
-	[StructLayout(LayoutKind.Sequential)]
-	public struct SKSize
+	public struct SKLattice : IEquatable<SKLattice>
 	{
-		private float width, height;
+		public int[] XDivs { readonly get; set; }
+		public int[] YDivs { readonly get; set; }
+		public SKLatticeRectType[] RectTypes { readonly get; set; }
+		public SKRectI? Bounds { readonly get; set; }
+		public SKColor[] Colors { readonly get; set; }
 
-		public static readonly SKSize Empty;
+		public readonly bool Equals (SKLattice obj) =>
+			XDivs == obj.XDivs &&
+			YDivs == obj.YDivs &&
+			RectTypes == obj.RectTypes &&
+			Bounds == obj.Bounds &&
+			Colors == obj.Colors;
 
-		public SKSize (float width, float height)
+		public readonly override bool Equals (object obj) =>
+			obj is SKLattice f && Equals (f);
+
+		public static bool operator == (SKLattice left, SKLattice right) =>
+			left.Equals (right);
+
+		public static bool operator != (SKLattice left, SKLattice right) =>
+			!left.Equals (right);
+
+		public readonly override int GetHashCode ()
 		{
-			this.width = width;
-			this.height = height;
+			var hash = new HashCode ();
+			hash.Add (XDivs);
+			hash.Add (YDivs);
+			hash.Add (RectTypes);
+			hash.Add (Bounds);
+			hash.Add (Colors);
+			return hash.ToHashCode ();
 		}
-		
-		public SKSize (SKPoint pt)
-		{
-			this.width = pt.X;
-			this.height = pt.Y;
-		}
-
-		public bool IsEmpty => (width == 0) && (height == 0);
-
-		public float Width {
-			get { return width; }
-			set { width = value; }
-		}
-
-		public float Height {
-			get { return height; }
-			set { height = value; }
-		}
-
-		public SKPoint ToPoint ()
-		{
-			return new SKPoint (width, height);
-		}
-
-		public SKSizeI ToSizeI ()
-		{
-			int w, h;
-			checked {
-				w = (int) width;
-				h = (int) height;
-			}
-
-			return new SKSizeI (w, h);
-		}
-
-		public static SKSize operator + (SKSize sz1, SKSize sz2)
-		{
-			return new SKSize (sz1.Width + sz2.Width, sz1.Height + sz2.Height);
-		}
-
-		public static SKSize operator - (SKSize sz1, SKSize sz2)
-		{
-			return new SKSize (sz1.Width - sz2.Width, sz1.Height - sz2.Height);
-		}
-
-		public static bool operator == (SKSize sz1, SKSize sz2)
-		{
-			return ((sz1.Width == sz2.Width) && (sz1.Height == sz2.Height));
-		}
-
-		public static bool operator != (SKSize sz1, SKSize sz2)
-		{
-			return !(sz1 == sz2);
-		}
-
-		public static explicit operator SKPoint (SKSize size)
-		{
-			return new SKPoint (size.Width, size.Height);
-		}
-
-		public static implicit operator SKSize (SKSizeI size)
-		{
-			return new SKSize (size.Width, size.Height);
-		}
-
-		public override bool Equals (object obj)
-		{
-			if (!(obj is SKSize))
-				return false;
-
-			return (this == (SKSize) obj);
-		}
-
-		public override int GetHashCode ()
-		{
-			return (int) width ^ (int) height;
-		}
-
-		public override string ToString ()
-		{
-			return string.Format (
-				"{{Width={0}, Height={1}}}", 
-				width.ToString (CultureInfo.CurrentCulture),
-				height.ToString (CultureInfo.CurrentCulture));
-		}
-
-		public static SKSize Add (SKSize sz1, SKSize sz2) => sz1 + sz2;
-		
-		public static SKSize Subtract (SKSize sz1, SKSize sz2) => sz1 - sz2;
 	}
 
-	[StructLayout(LayoutKind.Sequential)]
-	public struct SKSizeI
+	internal partial struct SKTimeDateTimeInternal
 	{
-		private int width, height;
-
-		public static readonly SKSizeI Empty;
-
-		public SKSizeI (int width, int height)
-		{
-			this.width = width;
-			this.height = height;
-		}
-		
-		public SKSizeI (SKPointI pt)
-		{
-			this.width = pt.X;
-			this.height = pt.Y;
-		}
-
-		public bool IsEmpty => (width == 0) && (height == 0);
-
-		public int Width {
-			get { return width; }
-			set { width = value; }
-		}
-
-		public int Height {
-			get { return height; }
-			set { height = value; }
-		}
-
-		public SKPointI ToPointI ()
-		{
-			return new SKPointI (width, height);
-		}
-
-		public static SKSizeI operator + (SKSizeI sz1, SKSizeI sz2)
-		{
-			return new SKSizeI (sz1.Width + sz2.Width, sz1.Height + sz2.Height);
-		}
-
-		public static SKSizeI operator - (SKSizeI sz1, SKSizeI sz2)
-		{
-			return new SKSizeI (sz1.Width - sz2.Width, sz1.Height - sz2.Height);
-		}
-
-		public static bool operator == (SKSizeI sz1, SKSizeI sz2)
-		{
-			return ((sz1.Width == sz2.Width) && (sz1.Height == sz2.Height));
-		}
-
-		public static bool operator != (SKSizeI sz1, SKSizeI sz2)
-		{
-			return !(sz1 == sz2);
-		}
-
-		public static explicit operator SKPointI (SKSizeI size)
-		{
-			return new SKPointI (size.Width, size.Height);
-		}
-
-		public override bool Equals (object obj)
-		{
-			if (!(obj is SKSizeI))
-				return false;
-
-			return (this == (SKSizeI) obj);
-		}
-
-		public override int GetHashCode ()
-		{
-			return (int) width ^ (int) height;
-		}
-
-		public override string ToString ()
-		{
-			return string.Format (
-				"{{Width={0}, Height={1}}}", 
-				width.ToString (CultureInfo.CurrentCulture),
-				height.ToString (CultureInfo.CurrentCulture));
-		}
-
-		public static SKSizeI Add (SKSizeI sz1, SKSizeI sz2) => sz1 + sz2;
-		
-		public static SKSizeI Subtract (SKSizeI sz1, SKSizeI sz2) => sz1 - sz2;
-	}
-
-	[StructLayout(LayoutKind.Sequential)]
-	public struct SKRectI {
-		public static readonly SKRectI Empty;
-		
-		private int left, top, right, bottom;
-		
-		public SKRectI (int left, int top, int right, int bottom)
-		{
-			this.left = left;
-			this.right = right;
-			this.top = top;
-			this.bottom = bottom;
-		}
-
-		public int Left {
-			get { return left; }
-			set { left = value; }
-		}
-
-		public int Top {
-			get { return top; }
-			set { top = value; }
-		}
-
-		public int Right {
-			get { return right; }
-			set { right = value; }
-		}
-
-		public int Bottom {
-			get { return bottom; }
-			set { bottom = value; }
-		}
-
-		public int Width => right - left;
-
-		public int Height => bottom - top;
-
-		public bool IsEmpty => this == Empty;
-
-		public SKSizeI Size {
-			get { return new SKSizeI (Width, Height); }
-			set {
-				right = left + value.Width;
-				bottom = top + value.Height; 
-			}
-		}
-
-		public SKPointI Location {
-			get { return new SKPointI (left, top); }
-			set {
-				left = value.X;
-				top = value.Y; 
-			}
-		}
-
-		public static SKRectI Ceiling (SKRect value)
-		{
-			int x, y, r, b;
-			checked {
-				x = (int) Math.Ceiling (value.Left);
-				y = (int) Math.Ceiling (value.Top);
-				r = (int) Math.Ceiling (value.Right);
-				b = (int) Math.Ceiling (value.Bottom);
-			}
-
-			return new SKRectI (x, y, r, b);
-		}
-
-		public static SKRectI Inflate (SKRectI rect, int x, int y)
-		{
-			SKRectI r = new SKRectI (rect.left, rect.top, rect.right, rect.bottom);
-			r.Inflate (x, y);
-			return r;
-		}
-
-		public void Inflate (SKSizeI size)
-		{
-			Inflate (size.Width, size.Height);
-		}
-
-		public void Inflate (int width, int height)
-		{
-			left -= width;
-			top -= height;
-			right += width;
-			bottom += height;
-		}
-
-		public static SKRectI Intersect (SKRectI a, SKRectI b)
-		{
-			if (!a.IntersectsWithInclusive (b))
-				return Empty;
-
-			return new SKRectI (
-				Math.Max (a.left, b.left),
-				Math.Max (a.top, b.top),
-				Math.Min (a.right, b.right),
-				Math.Min (a.bottom, b.bottom));
-		}
-
-		public void Intersect (SKRectI rect)
-		{
-			this = SKRectI.Intersect (this, rect);
-		}
-
-		public static SKRectI Round (SKRect value)
-		{
-			int x, y, r, b;
-			checked {
-				x = (int) Math.Round (value.Left);
-				y = (int) Math.Round (value.Top);
-				r = (int) Math.Round (value.Right);
-				b = (int) Math.Round (value.Bottom);
-			}
-
-			return new SKRectI (x, y, r, b);
-		}
-
-		public static SKRectI Truncate (SKRect value)
-		{
-			int x, y, r, b;
-			checked {
-				x = (int) value.Left;
-				y = (int) value.Top;
-				r = (int) value.Right;
-				b = (int) value.Bottom;
-			}
-
-			return new SKRectI (x, y, r, b);
-		}
-
-		public static SKRectI Union (SKRectI a, SKRectI b)
-		{
-			return new SKRectI (
-				Math.Min (a.Left, b.Left),
-				Math.Min (a.Top, b.Top),
-				Math.Max (a.Right, b.Right),
-				Math.Max (a.Bottom, b.Bottom));
-		}
-
-		public void Union (SKRectI rect)
-		{
-			this = SKRectI.Union (this, rect);
-		}
-
-		public bool Contains (int x, int y)
-		{
-			return 
-				(x >= left) && (x < right) && 
-				(y >= top) && (y < bottom);
-		}
-
-		public bool Contains (SKPointI pt)
-		{
-			return Contains (pt.X, pt.Y);
-		}
-
-		public bool Contains (SKRectI rect)
-		{
-			return
-				(left <= rect.left) && (right >= rect.right) && 
-				(top <= rect.top) && (bottom >= rect.bottom);
-		}
-
-		public override bool Equals (object obj)
-		{
-			if (!(obj is SKRectI))
-				return false;
-
-			return (this == (SKRectI) obj);
-		}
-		
-		public override int GetHashCode ()
-		{
-			return unchecked((int)(
-				(((UInt32)Left)) ^ 
-				(((UInt32)Top << 13) | ((UInt32)Top >> 19)) ^
-				(((UInt32)Width << 26) | ((UInt32)Width >>  6)) ^
-				(((UInt32)Height <<  7) | ((UInt32)Height >> 25))));
-		}
-
-		public bool IntersectsWith (SKRectI rect)
-		{
-			return
-				!((left >= rect.right) || (right <= rect.left) ||
-				  (top >= rect.bottom) || (bottom <= rect.top));
-		}
-
-		private bool IntersectsWithInclusive (SKRectI r)
-		{
-			return
-				!((left > r.right) || (right < r.left) ||
-				  (top > r.bottom) || (bottom < r.top));
-		}
-		
-		public void Offset (int x, int y)
-		{
-			left += x;
-			top += y;
-			right += x;
-			bottom += y;
-		}
-
-		public void Offset (SKPointI pos)
-		{
-			Offset (pos.X, pos.Y);
-		}
-
-		public override string ToString ()
-		{
-			return String.Format (
-				"{{Left={0},Top={1},Width={2},Height={3}}}",
-				Left.ToString (CultureInfo.CurrentCulture),
-				Top.ToString (CultureInfo.CurrentCulture),
-				Width.ToString (CultureInfo.CurrentCulture),
-				Height.ToString (CultureInfo.CurrentCulture));
-		}
-
-		public static bool operator == (SKRectI left, SKRectI right)
-		{
-			return
-				(left.left == right.left) && (left.top == right.top) &&
-				(left.right == right.right) && (left.bottom == right.bottom);
-		}
-
-		public static bool operator != (SKRectI left, SKRectI right)
-		{
-			return !(left == right);
-		}
-
-		public static SKRectI Create (SKSizeI size)
-		{
-			return SKRectI.Create (SKPointI.Empty.X, SKPointI.Empty.Y, size.Width, size.Height);
-		}
-
-		public static SKRectI Create (SKPointI location, SKSizeI size)
-		{
-			return SKRectI.Create (location.X, location.Y, size.Width, size.Height);
-		}
-
-		public static SKRectI Create (int width, int height)
-		{
-			return new SKRectI (SKPointI.Empty.X, SKPointI.Empty.X, width, height);
-		}
-
-		public static SKRectI Create (int x, int y, int width, int height)
-		{
-			return new SKRectI (x, y, x + width, y + height);
-		}
-	}
-
-	[StructLayout(LayoutKind.Sequential)]
-	public struct SKRect {
-		public static readonly SKRect Empty;
-
-		private float left, top, right, bottom;
-
-		public SKRect (float left, float top, float right, float bottom)
-		{
-			this.left = left;
-			this.right = right;
-			this.top = top;
-			this.bottom = bottom;
-		}
-
-		public float Left {
-			get { return left; }
-			set { left = value; }
-		}
-
-		public float Top {
-			get { return top; }
-			set { top = value; }
-		}
-
-		public float Right {
-			get { return right; }
-			set { right = value; }
-		}
-
-		public float Bottom {
-			get { return bottom; }
-			set { bottom = value; }
-		}
-
-		public float Width => right - left;
-
-		public float Height => bottom - top;
-
-		public bool IsEmpty => this == Empty;
-
-		public SKSize Size {
-			get { return new SKSize (Width, Height); }
-			set {
-				right = left + value.Width;
-				bottom = top + value.Height; 
-			}
-		}
-
-		public SKPoint Location {
-			get { return new SKPoint (left, top); }
-			set {
-				left = value.X;
-				top = value.Y; 
-			}
-		}
-
-		public static SKRect Inflate (SKRect rect, float x, float y)
-		{
-			var r = new SKRect (rect.left, rect.top, rect.right, rect.bottom);
-			r.Inflate (x, y);
-			return r;
-		}
-
-		public void Inflate (SKSize size)
-		{
-			Inflate (size.Width, size.Height);
-		}
-
-		public void Inflate (float x, float y)
-		{
-			left -= x;
-			top -= y;
-			right += x;
-			bottom += y;
-		}
-
-		public static SKRect Intersect (SKRect a, SKRect b)
-		{
-			if (!a.IntersectsWithInclusive (b)) {
-				return Empty;
-			}
-			return new SKRect (
-				Math.Max (a.left, b.left),
-				Math.Max (a.top, b.top),
-				Math.Min (a.right, b.right),
-				Math.Min (a.bottom, b.bottom));
-		}
-
-		public void Intersect (SKRect rect)
-		{
-			this = SKRect.Intersect (this, rect);
-		}
-
-		public static SKRect Union (SKRect a, SKRect b)
-		{
-			return new SKRect (
-				Math.Min (a.left, b.left),
-				Math.Min (a.top, b.top),
-				Math.Max (a.right, b.right),
-				Math.Max (a.bottom, b.bottom));
-		}
-
-		public void Union (SKRect rect)
-		{
-			this = SKRect.Union (this, rect);
-		}
-
-		public static bool operator == (SKRect left, SKRect right)
-		{
-			return
-				(left.left == right.left) && (left.top == right.top) &&
-				(left.right == right.right) && (left.bottom == right.bottom);
-		}
-
-		public static bool operator != (SKRect left, SKRect right)
-		{
-			return !(left == right);
-		}
-
-		public static implicit operator SKRect (SKRectI r)
-		{
-			return new SKRect (r.Left, r.Top, r.Right, r.Bottom);
-		}
-
-		public bool Contains (float x, float y)
-		{
-			return (x >= left) && (x < right) && (y >= top) && (y < bottom);
-		}
-
-		public bool Contains (SKPoint pt)
-		{
-			return Contains (pt.X, pt.Y);
-		}
-
-		public bool Contains (SKRect rect)
-		{
-			return 
-				(left <= rect.left) && (right >= rect.right) && 
-				(top <= rect.top) && (bottom >= rect.bottom);
-		}
-		
-		public override bool Equals (object obj)
-		{
-			if (!(obj is SKRect))
-				return false;
-
-			return this == (SKRect) obj;
-		}
-
-		public override int GetHashCode ()
-		{
-			return unchecked((int)(
-				(((UInt32)Left)) ^ 
-				(((UInt32)Top << 13) | ((UInt32)Top >> 19)) ^
-				(((UInt32)Width << 26) | ((UInt32)Width >>  6)) ^
-				(((UInt32)Height <<  7) | ((UInt32)Height >> 25))));
-		}
-
-		public bool IntersectsWith (SKRect rect)
-		{
-			return !((left >= rect.right) || (right <= rect.left) ||
-					(top >= rect.bottom) || (bottom <= rect.top));
-		}
-
-		public bool IntersectsWithInclusive (SKRect rect)
-		{
-			return !((left > rect.right) || (right < rect.left) ||
-					 (top > rect.bottom) || (bottom < rect.top));
-		}
-		
-		public void Offset (float x, float y)
-		{
-			left += x;
-			top += y;
-			right += x;
-			bottom += y;
-		}
-
-		public void Offset (SKPoint pos)
-		{
-			Offset (pos.X, pos.Y);
-		}
-
-		public override string ToString ()
-		{
-			return String.Format (
-				"{{Left={0},Top={1},Width={2},Height={3}}}",
-				Left.ToString (CultureInfo.CurrentCulture),
-				Top.ToString (CultureInfo.CurrentCulture),
-				Width.ToString (CultureInfo.CurrentCulture),
-				Height.ToString (CultureInfo.CurrentCulture));
-		}
-
-		public static SKRect Create (SKPoint location, SKSize size)
-		{
-			return SKRect.Create (location.X, location.Y, size.Width, size.Height);
-		}
-
-		public static SKRect Create (SKSize size)
-		{
-			return SKRect.Create (SKPoint.Empty, size);
-		}
-
-		public static SKRect Create (float width, float height)
-		{
-			return new SKRect (SKPoint.Empty.X, SKPoint.Empty.Y, width, height);
-		}
-
-		public static SKRect Create (float x, float y, float width, float height)
-		{
-			return new SKRect (x, y, x + width, y + height);
-		}
-	}
-
-	[StructLayout(LayoutKind.Sequential)]
-	public struct SKMatrix {
-		private float scaleX, skewX, transX;
-		private float skewY, scaleY, transY;
-		private float persp0, persp1, persp2;
-
-		private class Indices {
-			public const int ScaleX = 0;
-			public const int SkewX = 1;
-			public const int TransX = 2;
-			public const int SkewY = 3;
-			public const int ScaleY = 4;
-			public const int TransY = 5;
-			public const int Persp0 = 6;
-			public const int Persp1 = 7;
-			public const int Persp2 = 8;
-
-			public const int Count = 9;
-		};
-
-		public float ScaleX {
-			get { return scaleX; }
-			set { scaleX = value; }
-		}
-
-		public float SkewX {
-			get { return skewX; }
-			set { skewX = value; }
-		}
-
-		public float TransX {
-			get { return transX; }
-			set { transX = value; }
-		}
-
-		public float SkewY {
-			get { return skewY; }
-			set { skewY = value; }
-		}
-
-		public float ScaleY {
-			get { return scaleY; }
-			set { scaleY = value; }
-		}
-
-		public float TransY {
-			get { return transY; }
-			set { transY = value; }
-		}
-
-		public float Persp0 {
-			get { return persp0; }
-			set { persp0 = value; }
-		}
-
-		public float Persp1 {
-			get { return persp1; }
-			set { persp1 = value; }
-		}
-
-		public float Persp2 {
-			get { return persp2; }
-			set { persp2 = value; }
-		}
-
-		public float [] Values {
-			get {
-				return new float [9] {
-					scaleX, skewX, transX,
-					skewY, scaleY, transY,
-					persp0, persp1, persp2 };
-			}
-			set {
-				if (value == null)
-					throw new ArgumentNullException (nameof (Values));
-				if (value.Length != Indices.Count)
-					throw new ArgumentOutOfRangeException (nameof (Values));
-
-				scaleX = value [Indices.ScaleX];
-				skewX = value [Indices.SkewX];
-				transX = value [Indices.TransX];
-
-				skewY = value [Indices.SkewY];
-				scaleY = value [Indices.ScaleY];
-				transY = value [Indices.TransY];
-
-				persp0 = value [Indices.Persp0];
-				persp1 = value [Indices.Persp1];
-				persp2 = value [Indices.Persp2];
-			}
-		}
-
-		public void GetValues(float[] values)
-		{
-			if (values == null)
-				throw new ArgumentNullException (nameof (values));
-			if (values.Length != Indices.Count)
-				throw new ArgumentOutOfRangeException (nameof (values));
-
-			values [Indices.ScaleX] = scaleX;
-			values [Indices.SkewX] = skewX;
-			values [Indices.TransX] = transX;
-			values [Indices.SkewY] = skewY;
-			values [Indices.ScaleY] = scaleY;
-			values [Indices.TransY] = transY;
-			values [Indices.Persp0] = persp0;
-			values [Indices.Persp1] = persp1;
-			values [Indices.Persp2] = persp2;
-		}
-
-#if OPTIMIZED_SKMATRIX
-
-		//
-		// If we manage to get an sk_matrix_t that contains the extra
-		// the fTypeMask flag, we could accelerate various operations
-		// as well, as this caches state of what is needed to be done.
-		//
-	
-		[Flags]
-		enum Mask : uint {
-			Identity = 0,
-			Translate = 1,
-			Scale = 2,
-			Affine = 4,
-			Perspective = 8,
-			RectStaysRect = 0x10,
-			OnlyPerspectiveValid = 0x40,
-			Unknown = 0x80,
-			OrableMasks = Translate | Scale | Affine | Perspective,
-			AllMasks = OrableMasks | RectStaysRect
-		}
-		Mask typeMask;
-
-		Mask GetMask ()
-		{
-			if (typeMask.HasFlag (Mask.Unknown))
-				typeMask = (Mask) SkiaApi.sk_matrix_get_type (ref this);
-
-		        // only return the public masks
-			return (Mask) ((uint)typeMask & 0xf);
-		}
-#endif
-
-		static float sdot (float a, float b, float c, float d) => a * b + c * d;
-		static float scross(float a, float b, float c, float d) => a * b - c * d;
-
-		public static SKMatrix MakeIdentity ()
-		{
-			return new SKMatrix () { scaleX = 1, scaleY = 1, persp2 = 1
-#if OPTIMIZED_SKMATRIX
-					, typeMask = Mask.Identity | Mask.RectStaysRect
-#endif
-                        };
-		}
-
-		public void SetScaleTranslate (float sx, float sy, float tx, float ty)
-		{
-			scaleX = sx;
-			skewX = 0;
-			transX = tx;
-
-			skewY = 0;
-			scaleY = sy;
-			transY = ty;
-
-			persp0 = 0;
-			persp1 = 0;
-			persp2 = 1;
-
-#if OPTIMIZED_SKMATRIX
-			typeMask = Mask.RectStaysRect | 
-				((sx != 1 || sy != 1) ? Mask.Scale : 0) |
-				((tx != 0 || ty != 0) ? Mask.Translate : 0);
-#endif
-		}
-
-		public static SKMatrix MakeScale (float sx, float sy)
-		{
-			if (sx == 1 && sy == 1)
-				return MakeIdentity ();
-			return new SKMatrix () { scaleX = sx, scaleY = sy, persp2 = 1, 
-#if OPTIMIZED_SKMATRIX
-typeMask = Mask.Scale | Mask.RectStaysRect
-#endif
+		public static SKTimeDateTimeInternal Create (DateTime datetime)
+		{
+			var zone = datetime.Hour - datetime.ToUniversalTime ().Hour;
+			return new SKTimeDateTimeInternal {
+				fTimeZoneMinutes = (Int16)(zone * 60),
+				fYear = (UInt16)datetime.Year,
+				fMonth = (Byte)datetime.Month,
+				fDayOfWeek = (Byte)datetime.DayOfWeek,
+				fDay = (Byte)datetime.Day,
+				fHour = (Byte)datetime.Hour,
+				fMinute = (Byte)datetime.Minute,
+				fSecond = (Byte)datetime.Second
 			};
-				
 		}
+	}
 
-		/// <summary>
-		/// Set the matrix to scale by sx and sy, with a pivot point at (px, py).
-		/// The pivot point is the coordinate that should remain unchanged by the
-		/// specified transformation.
-		public static SKMatrix MakeScale (float sx, float sy, float pivotX, float pivotY)
+	public struct SKDocumentPdfMetadata : IEquatable<SKDocumentPdfMetadata>
+	{
+		public const float DefaultRasterDpi = SKDocument.DefaultRasterDpi;
+		public const int DefaultEncodingQuality = 101;
+
+		public static readonly SKDocumentPdfMetadata Default;
+
+		static SKDocumentPdfMetadata ()
 		{
-			if (sx == 1 && sy == 1)
-				return MakeIdentity ();
-			float tx = pivotX - sx * pivotX;
-			float ty = pivotY - sy * pivotY;
-
-#if OPTIMIZED_SKMATRIX
-			Mask mask = Mask.RectStaysRect | 
-				((sx != 1 || sy != 1) ? Mask.Scale : 0) |
-				((tx != 0 || ty != 0) ? Mask.Translate : 0);
-#endif
-			return new SKMatrix () { 
-				scaleX = sx, scaleY = sy, 
-				transX = tx, transY = ty,
-				persp2 = 1,
-#if OPTIMIZED_SKMATRIX
-				typeMask = mask
-#endif
+			Default = new SKDocumentPdfMetadata () {
+				RasterDpi = DefaultRasterDpi,
+				PdfA = false,
+				EncodingQuality = 101,
 			};
 		}
 
-		public static SKMatrix MakeTranslation (float dx, float dy)
+		public SKDocumentPdfMetadata (float rasterDpi)
 		{
-			if (dx == 0 && dy == 0)
-				return MakeIdentity ();
-			
-			return new SKMatrix () { 
-				scaleX = 1, scaleY = 1,
-				transX = dx, transY = dy,
-				persp2 = 1,
-#if OPTIMIZED_SKMATRIX
-				typeMask = Mask.Translate | Mask.RectStaysRect
-#endif
-			};
+			Title = null;
+			Author = null;
+			Subject = null;
+			Keywords = null;
+			Creator = null;
+			Producer = null;
+			Creation = null;
+			Modified = null;
+			RasterDpi = rasterDpi;
+			PdfA = false;
+			EncodingQuality = DefaultEncodingQuality;
 		}
 
-		public static SKMatrix MakeRotation (float radians)
+		public SKDocumentPdfMetadata (int encodingQuality)
 		{
-			var sin = (float) Math.Sin (radians);
-			var cos = (float) Math.Cos (radians);
-
-			var matrix = new SKMatrix ();
-			SetSinCos (ref matrix, sin, cos);
-			return matrix;
+			Title = null;
+			Author = null;
+			Subject = null;
+			Keywords = null;
+			Creator = null;
+			Producer = null;
+			Creation = null;
+			Modified = null;
+			RasterDpi = DefaultRasterDpi;
+			PdfA = false;
+			EncodingQuality = encodingQuality;
 		}
 
-		public static SKMatrix MakeRotation (float radians, float pivotx, float pivoty)
+		public SKDocumentPdfMetadata (float rasterDpi, int encodingQuality)
 		{
-			var sin = (float) Math.Sin (radians);
-			var cos = (float) Math.Cos (radians);
-
-			var matrix = new SKMatrix ();
-			SetSinCos (ref matrix, sin, cos, pivotx, pivoty);
-			return matrix;
+			Title = null;
+			Author = null;
+			Subject = null;
+			Keywords = null;
+			Creator = null;
+			Producer = null;
+			Creation = null;
+			Modified = null;
+			RasterDpi = rasterDpi;
+			PdfA = false;
+			EncodingQuality = encodingQuality;
 		}
 
-		const float degToRad = (float)System.Math.PI / 180.0f;
-		
-		public static SKMatrix MakeRotationDegrees (float degrees)
-		{
-			return MakeRotation (degrees * degToRad);
-		}
+		public string Title { readonly get; set; }
+		public string Author { readonly get; set; }
+		public string Subject { readonly get; set; }
+		public string Keywords { readonly get; set; }
+		public string Creator { readonly get; set; }
+		public string Producer { readonly get; set; }
+		public DateTime? Creation { readonly get; set; }
+		public DateTime? Modified { readonly get; set; }
+		public float RasterDpi { readonly get; set; }
+		public bool PdfA { readonly get; set; }
+		public int EncodingQuality { readonly get; set; }
 
-		public static SKMatrix MakeRotationDegrees (float degrees, float pivotx, float pivoty)
-		{
-			return MakeRotation (degrees * degToRad, pivotx, pivoty);
-		}
+		public readonly bool Equals (SKDocumentPdfMetadata obj) =>
+			Title == obj.Title &&
+			Author == obj.Author &&
+			Subject == obj.Subject &&
+			Keywords == obj.Keywords &&
+			Creator == obj.Creator &&
+			Producer == obj.Producer &&
+			Creation == obj.Creation &&
+			Modified == obj.Modified &&
+			RasterDpi == obj.RasterDpi &&
+			PdfA == obj.PdfA &&
+			EncodingQuality == obj.EncodingQuality;
 
-		static void SetSinCos (ref SKMatrix matrix, float sin, float cos)
-		{
-			matrix.scaleX = cos;
-			matrix.skewX = -sin;
-			matrix.transX = 0;
-			matrix.skewY = sin;
-			matrix.scaleY = cos;
-			matrix.transY = 0;
-			matrix.persp0 = 0;
-			matrix.persp1 = 0;
-			matrix.persp2 = 1;
-#if OPTIMIZED_SKMATRIX
-			matrix.typeMask = Mask.Unknown | Mask.OnlyPerspectiveValid;
-#endif
-		}
+		public readonly override bool Equals (object obj) =>
+			obj is SKDocumentPdfMetadata f && Equals (f);
 
-		static void SetSinCos (ref SKMatrix matrix, float sin, float cos, float pivotx, float pivoty)
-		{
-			float oneMinusCos = 1-cos;
-			
-			matrix.scaleX = cos;
-			matrix.skewX = -sin;
-			matrix.transX = sdot(sin, pivoty, oneMinusCos, pivotx);
-			matrix.skewY = sin;
-			matrix.scaleY = cos;
-			matrix.transY = sdot(-sin, pivotx, oneMinusCos, pivoty);
-			matrix.persp0 = 0;
-			matrix.persp1 = 0;
-			matrix.persp2 = 1;
-#if OPTIMIZED_SKMATRIX
-			matrix.typeMask = Mask.Unknown | Mask.OnlyPerspectiveValid;
-#endif
-		}
-		
-		public static void Rotate (ref SKMatrix matrix, float radians, float pivotx, float pivoty)
-		{
-			var sin = (float) Math.Sin (radians);
-			var cos = (float) Math.Cos (radians);
-			SetSinCos (ref matrix, sin, cos, pivotx, pivoty);
-		}
+		public static bool operator == (SKDocumentPdfMetadata left, SKDocumentPdfMetadata right) =>
+			left.Equals (right);
 
-		public static void RotateDegrees (ref SKMatrix matrix, float degrees, float pivotx, float pivoty)
-		{
-			var sin = (float) Math.Sin (degrees * degToRad);
-			var cos = (float) Math.Cos (degrees * degToRad);
-			SetSinCos (ref matrix, sin, cos, pivotx, pivoty);
-		}
+		public static bool operator != (SKDocumentPdfMetadata left, SKDocumentPdfMetadata right) =>
+			!left.Equals (right);
 
-		public static void Rotate (ref SKMatrix matrix, float radians)
+		public readonly override int GetHashCode ()
 		{
-			var sin = (float) Math.Sin (radians);
-			var cos = (float) Math.Cos (radians);
-			SetSinCos (ref matrix, sin, cos);
-		}
-
-		public static void RotateDegrees (ref SKMatrix matrix, float degrees)
-		{
-			var sin = (float) Math.Sin (degrees * degToRad);
-			var cos = (float) Math.Cos (degrees * degToRad);
-			SetSinCos (ref matrix, sin, cos);
-		}
-
-		public static SKMatrix MakeSkew (float sx, float sy)
-		{
-			return new SKMatrix () {
-				scaleX = 1,
-				skewX = sx,
-				transX = 0,
-				skewY = sy,
-				scaleY = 1,
-				transY = 0,
-				persp0 = 0,
-				persp1 = 0,
-				persp2 = 1,
-#if OPTIMIZED_SKMATRIX
-				typeMask = Mask.Unknown | Mask.OnlyPerspectiveValid
-#endif
-			};
-		}
-
-		public bool TryInvert (out SKMatrix inverse)
-		{
-			return SkiaApi.sk_matrix_try_invert (ref this, out inverse) != 0;
-		}
-
-		public static void Concat (ref SKMatrix target, ref SKMatrix first, ref SKMatrix second)
-		{
-			SkiaApi.sk_matrix_concat (ref target, ref first, ref second);
-		}
-
-		public static void PreConcat (ref SKMatrix target, ref SKMatrix matrix)
-		{
-			SkiaApi.sk_matrix_pre_concat (ref target, ref matrix);
-		}
-
-		public static void PostConcat (ref SKMatrix target, ref SKMatrix matrix)
-		{
-			SkiaApi.sk_matrix_post_concat (ref target, ref matrix);
-		}
-
-		public void MapRect (ref SKMatrix matrix, out SKRect dest, ref SKRect source)
-		{
-			SkiaApi.sk_matrix_map_rect (ref matrix, out dest, ref source);
-		}
-
-		public SKRect MapRect (SKRect source)
-		{
-			SKRect result;
-			MapRect (ref this, out result, ref source);
-			return result;
-		}
-
-		public void MapPoints (SKPoint [] result, SKPoint [] points)
-		{
-			if (result == null)
-				throw new ArgumentNullException (nameof (result));
-			if (points == null)
-				throw new ArgumentNullException (nameof (points));
-			int dl = result.Length;
-			if (dl != points.Length)
-				throw new ArgumentException ("buffers must be the same size");
-			unsafe {
-				fixed (SKPoint *rp = &result[0]){
-					fixed (SKPoint *pp = &points[0]){
-						SkiaApi.sk_matrix_map_points (ref this, (IntPtr) rp, (IntPtr) pp, dl);
-					}
-				}
-			}
-		}
-
-		public SKPoint [] MapPoints (SKPoint [] points)
-		{
-			if (points == null)
-				throw new ArgumentNullException (nameof (points));
-			var res = new SKPoint [points.Length];
-			MapPoints (res, points);
-			return res;
-		}
-
-		public void MapVectors (SKPoint [] result, SKPoint [] vectors)
-		{
-			if (result == null)
-				throw new ArgumentNullException (nameof (result));
-			if (vectors == null)
-				throw new ArgumentNullException (nameof (vectors));
-			int dl = result.Length;
-			if (dl != vectors.Length)
-				throw new ArgumentException ("buffers must be the same size");
-			unsafe {
-				fixed (SKPoint *rp = &result[0]){
-					fixed (SKPoint *pp = &vectors[0]){
-						SkiaApi.sk_matrix_map_vectors (ref this, (IntPtr) rp, (IntPtr) pp, dl);
-					}
-				}
-			}
-		}
-
-		public SKPoint [] MapVectors (SKPoint [] vectors)
-		{
-			if (vectors == null)
-				throw new ArgumentNullException (nameof (vectors));
-			var res = new SKPoint [vectors.Length];
-			MapVectors (res, vectors);
-			return res;
-		}
-
-		public SKPoint MapXY (float x, float y)
-		{
-			SKPoint result;
-			SkiaApi.sk_matrix_map_xy (ref this, x, y, out result);
-			return result;
-		}
-
-		public SKPoint MapVector (float x, float y)
-		{
-			SKPoint result;
-			SkiaApi.sk_matrix_map_vector(ref this, x, y, out result);
-			return result;
-		}
-
-		public float MapRadius (float radius)
-		{
-			return SkiaApi.sk_matrix_map_radius (ref this, radius);
+			var hash = new HashCode ();
+			hash.Add (Title);
+			hash.Add (Author);
+			hash.Add (Subject);
+			hash.Add (Keywords);
+			hash.Add (Creator);
+			hash.Add (Producer);
+			hash.Add (Creation);
+			hash.Add (Modified);
+			hash.Add (RasterDpi);
+			hash.Add (PdfA);
+			hash.Add (EncodingQuality);
+			return hash.ToHashCode ();
 		}
 	}
 
-	[StructLayout(LayoutKind.Sequential)]
-	public struct SKFontMetrics
-	{
-		uint flags;                     // Bit field to identify which values are unknown
-		float top;                      // The greatest distance above the baseline for any glyph (will be <= 0)
-		float ascent;                   // The recommended distance above the baseline (will be <= 0)
-		float descent;                  // The recommended distance below the baseline (will be >= 0)
-		float bottom;                   // The greatest distance below the baseline for any glyph (will be >= 0)
-		float leading;                  // The recommended distance to add between lines of text (will be >= 0)
-		float avgCharWidth;             // the average character width (>= 0)
-		float maxCharWidth;             // the max character width (>= 0)
-		float xMin;                     // The minimum bounding box x value for all glyphs
-		float xMax;                     // The maximum bounding box x value for all glyphs
-		float xHeight;                  // The height of an 'x' in px, or 0 if no 'x' in face
-		float capHeight;                // The cap height (> 0), or 0 if cannot be determined.
-		float underlineThickness;       // underline thickness, or 0 if cannot be determined
-		float underlinePosition;        // underline position, or 0 if cannot be determined
-
-		const uint flagsUnderlineThicknessIsValid = (1U << 0);
-		const uint flagsUnderlinePositionIsValid = (1U << 1);
-
-		public float Top
-		{
-			get { return top; }
-		}
-
-		public float Ascent
-		{
-			get { return ascent; }
-		}
-
-		public float Descent
-		{
-			get { return descent; }
-		}
-
-		public float Bottom
-		{
-			get { return bottom; }
-		}
-
-		public float Leading
-		{
-			get { return leading; }
-		}
-
-		public float AverageCharacterWidth
-		{
-			get { return avgCharWidth; }
-		}
-
-		public float MaxCharacterWidth
-		{
-			get { return maxCharWidth; }
-		}
-
-		public float XMin
-		{
-			get { return xMin; }
-		}
-
-		public float XMax
-		{
-			get { return xMax; }
-		}
-
-		public float XHeight
-		{
-			get { return xHeight; }
-		}
-
-		public float CapHeight
-		{
-			get { return capHeight; }
-		}
-
-		public float? UnderlineThickness
-		{
-			get {
-				if ((flags & flagsUnderlineThicknessIsValid) != 0)
-					return underlineThickness;
-				else
-					return null;
-			}
-		}
-
-		public float? UnderlinePosition
-		{
-			get {
-				if ((flags & flagsUnderlinePositionIsValid) != 0)
-					return underlinePosition;
-				else
-					return null;
-			}
-		}
-	}
-
-	public enum GRSurfaceOrigin {
-		TopLeft,
-		BottomLeft,
-	}
-
-	public enum GRPixelConfig {
-		Unknown,
-		Alpha8,
-		Index8,
-		Rgb565,
-		Rgba4444,
-		Rgba8888,
-		Bgra8888,
-		Srgba8888,
-		Sbgra8888,
-		Etc1,
-		Latc,
-		R11Eac,
-		Astc12x12,
-		RgbaFloat,
-		AlphaHalf,
-		RgbaHalf,
-	}
-
-	[StructLayout(LayoutKind.Sequential)]
-	public struct GRBackendRenderTargetDesc {
-		private int width;
-		private int height;
-		private GRPixelConfig config;
-		private GRSurfaceOrigin origin;
-		private int sampleCount;
-		private int stencilBits;
-		private GRBackendObject renderTargetHandle;
-
-		public int Width {
-			get { return width; }
-			set { width = value; }
-		}
-		public int Height {
-			get { return height; }
-			set { height = value; }
-		}
-		public GRPixelConfig Config {
-			get { return config; }
-			set { config = value; }
-		}
-		public GRSurfaceOrigin Origin {
-			get { return origin; }
-			set { origin = value; }
-		}
-		public int SampleCount {
-			get { return sampleCount; }
-			set { sampleCount = value; }
-		}
-		public int StencilBits {
-			get { return stencilBits; }
-			set { stencilBits = value; }
-		}
-		public GRBackendObject RenderTargetHandle {
-			get { return renderTargetHandle; }
-			set { renderTargetHandle = value; }
-		}
-	}
-	
-	public enum GRBackend {
-		OpenGL,
-		Vulkan,
-	}
-
+	[EditorBrowsable (EditorBrowsableState.Never)]
+	[Obsolete]
 	[Flags]
-	public enum GRBackendTextureDescFlags {
+	public enum SKColorSpaceFlags
+	{
 		None = 0,
-		RenderTarget = 1,
+		NonLinearBlending = 0x1,
 	}
 
-	[StructLayout(LayoutKind.Sequential)]
-	public struct GRBackendTextureDesc {
-		private GRBackendTextureDescFlags flags;
-		private GRSurfaceOrigin origin;
-		private int width;
-		private int height;
-		private GRPixelConfig config;
-		private int sampleCount;
-		private GRBackendObject textureHandle;
-		
-		public GRBackendTextureDescFlags Flags {
-			get { return flags; }
-			set { flags = value; }
+	[EditorBrowsable (EditorBrowsableState.Never)]
+	[Obsolete]
+	public enum SKTransferFunctionBehavior
+	{
+		Ignore = 1,
+		Respect = 0,
+	}
+
+	public partial struct SKHighContrastConfig
+	{
+		public static readonly SKHighContrastConfig Default;
+
+		static SKHighContrastConfig ()
+		{
+			Default = new SKHighContrastConfig (false, SKHighContrastConfigInvertStyle.NoInvert, 0.0f);
 		}
-		public GRSurfaceOrigin Origin {
-			get { return origin; }
-			set { origin = value; }
+
+		public SKHighContrastConfig (bool grayscale, SKHighContrastConfigInvertStyle invertStyle, float contrast)
+		{
+			fGrayscale = grayscale ? (byte)1 : (byte)0;
+			fInvertStyle = invertStyle;
+			fContrast = contrast;
 		}
-		public int Width {
-			get { return width; }
-			set { width = value; }
+
+		public readonly bool IsValid =>
+			(int)fInvertStyle >= (int)SKHighContrastConfigInvertStyle.NoInvert &&
+			(int)fInvertStyle <= (int)SKHighContrastConfigInvertStyle.InvertLightness &&
+			fContrast >= -1.0 &&
+			fContrast <= 1.0;
+	}
+
+	public unsafe partial struct SKPngEncoderOptions
+	{
+		public static readonly SKPngEncoderOptions Default;
+
+		static SKPngEncoderOptions ()
+		{
+			Default = new SKPngEncoderOptions (SKPngEncoderFilterFlags.AllFilters, 6);
 		}
-		public int Height {
-			get { return height; }
-			set { height = value; }
+
+		public SKPngEncoderOptions (SKPngEncoderFilterFlags filterFlags, int zLibLevel)
+		{
+			fFilterFlags = filterFlags;
+			fZLibLevel = zLibLevel;
+			fComments = null;
 		}
-		public GRPixelConfig Config {
-			get { return config; }
-			set { config = value; }
+
+		[EditorBrowsable (EditorBrowsableState.Never)]
+		[Obsolete ("Using SKPngEncoderOptions(SKPngEncoderFilterFlags, int) instead.")]
+		public SKPngEncoderOptions (SKPngEncoderFilterFlags filterFlags, int zLibLevel, SKTransferFunctionBehavior unpremulBehavior)
+		{
+			fFilterFlags = filterFlags;
+			fZLibLevel = zLibLevel;
+			fComments = null;
 		}
-		public int SampleCount {
-			get { return sampleCount; }
-			set { sampleCount = value; }
+
+		public SKPngEncoderFilterFlags FilterFlags {
+			readonly get => fFilterFlags;
+			set => fFilterFlags = value;
 		}
-		public GRBackendObject TextureHandle {
-			get { return textureHandle; }
-			set { textureHandle = value; }
+		public int ZLibLevel {
+			readonly get => fZLibLevel;
+			set => fZLibLevel = value;
+		}
+
+		[EditorBrowsable (EditorBrowsableState.Never)]
+		[Obsolete]
+		public SKTransferFunctionBehavior UnpremulBehavior {
+			readonly get => SKTransferFunctionBehavior.Respect;
+			set { }
 		}
 	}
 
-	[StructLayout(LayoutKind.Sequential)]
-	public struct GRContextOptions {
-		[MarshalAs(UnmanagedType.I1)]
-		private bool suppressPrints;
-		private int maxTextureSizeOverride;
-		private int maxTileSizeOverride;
-		[MarshalAs(UnmanagedType.I1)]
-		private bool suppressDualSourceBlending;
-		private int bufferMapThreshold;
-		[MarshalAs(UnmanagedType.I1)]
-		private bool useDrawInsteadOfPartialRenderTargetWrite;
-		[MarshalAs(UnmanagedType.I1)]
-		private bool immediateMode;
-		[MarshalAs(UnmanagedType.I1)]
-		private bool clipBatchToBounds;
-		[MarshalAs(UnmanagedType.I1)]
-		private bool drawBatchBounds;
-		private int maxBatchLookback;
-		private int maxBatchLookahead;
-		[MarshalAs(UnmanagedType.I1)]
-		private bool useShaderSwizzling;
-		[MarshalAs(UnmanagedType.I1)]
-		private bool doManualMipmapping;
+	public partial struct SKJpegEncoderOptions
+	{
+		public static readonly SKJpegEncoderOptions Default;
 
-		public bool SuppressPrints {
-			get { return suppressPrints; }
-			set { suppressPrints = value; }
+		static SKJpegEncoderOptions ()
+		{
+			Default = new SKJpegEncoderOptions (100, SKJpegEncoderDownsample.Downsample420, SKJpegEncoderAlphaOption.Ignore);
 		}
-		public int MaxTextureSizeOverride {
-			get { return maxTextureSizeOverride; }
-			set { maxTextureSizeOverride = value; }
+
+		public SKJpegEncoderOptions (int quality, SKJpegEncoderDownsample downsample, SKJpegEncoderAlphaOption alphaOption)
+		{
+			fQuality = quality;
+			fDownsample = downsample;
+			fAlphaOption = alphaOption;
 		}
-		public int MaxTileSizeOverride {
-			get { return maxTileSizeOverride; }
-			set { maxTileSizeOverride = value; }
+
+		[EditorBrowsable (EditorBrowsableState.Never)]
+		[Obsolete ("Use SKJpegEncoderOptions(int, SKJpegEncoderDownsample, SKJpegEncoderAlphaOption) instead.")]
+		public SKJpegEncoderOptions (int quality, SKJpegEncoderDownsample downsample, SKJpegEncoderAlphaOption alphaOption, SKTransferFunctionBehavior blendBehavior)
+		{
+			fQuality = quality;
+			fDownsample = downsample;
+			fAlphaOption = alphaOption;
 		}
-		public bool SuppressDualSourceBlending {
-			get { return suppressDualSourceBlending; }
-			set { suppressDualSourceBlending = value; }
-		}
-		public int BufferMapThreshold {
-			get { return bufferMapThreshold; }
-			set { bufferMapThreshold = value; }
-		}
-		public bool UseDrawInsteadOfPartialRenderTargetWrite {
-			get { return useDrawInsteadOfPartialRenderTargetWrite; }
-			set { useDrawInsteadOfPartialRenderTargetWrite = value; }
-		}
-		public bool ImmediateMode {
-			get { return immediateMode; }
-			set { immediateMode = value; }
-		}
-		public bool ClipBatchToBounds {
-			get { return clipBatchToBounds; }
-			set { clipBatchToBounds = value; }
-		}
-		public bool DrawBatchBounds {
-			get { return drawBatchBounds; }
-			set { drawBatchBounds = value; }
-		}
-		public int MaxBatchLookback {
-			get { return maxBatchLookback; }
-			set { maxBatchLookback = value; }
-		}
-		public int MaxBatchLookahead {
-			get { return maxBatchLookahead; }
-			set { maxBatchLookahead = value; }
-		}
-		public bool UseShaderSwizzling {
-			get { return useShaderSwizzling; }
-			set { useShaderSwizzling = value; }
-		}
-		public bool DoManualMipmapping {
-			get { return doManualMipmapping; }
-			set { doManualMipmapping = value; }
+
+		[EditorBrowsable (EditorBrowsableState.Never)]
+		[Obsolete]
+		public SKTransferFunctionBehavior BlendBehavior {
+			readonly get => SKTransferFunctionBehavior.Respect;
+			set { }
 		}
 	}
-	
-	public enum GRContextFlushBits {
-		None = 0,
-		Discard = 0x2,
+
+	public partial struct SKWebpEncoderOptions
+	{
+		public static readonly SKWebpEncoderOptions Default;
+
+		static SKWebpEncoderOptions ()
+		{
+			Default = new SKWebpEncoderOptions (SKWebpEncoderCompression.Lossy, 100);
+		}
+
+		public SKWebpEncoderOptions (SKWebpEncoderCompression compression, float quality)
+		{
+			fCompression = compression;
+			fQuality = quality;
+		}
+
+		[EditorBrowsable (EditorBrowsableState.Never)]
+		[Obsolete ("Use SKWebpEncoderOptions(SKWebpEncoderCompression, float) instead.")]
+		public SKWebpEncoderOptions (SKWebpEncoderCompression compression, float quality, SKTransferFunctionBehavior unpremulBehavior)
+		{
+			fCompression = compression;
+			fQuality = quality;
+		}
+
+		[EditorBrowsable (EditorBrowsableState.Never)]
+		[Obsolete]
+		public SKTransferFunctionBehavior UnpremulBehavior {
+			readonly get => SKTransferFunctionBehavior.Respect;
+			set { }
+		}
 	}
-
-	public enum SKPathOp {
-		Difference,
-		Intersect,
-		Union,
-		Xor,
-		ReverseDifference,
-	};
-
-	public enum SKPathConvexity {
-		Unknown,
-		Convex,
-		Concave,
-	};
 }
-

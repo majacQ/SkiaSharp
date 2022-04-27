@@ -1,91 +1,129 @@
-using System;
+﻿using System;
+using System.ComponentModel;
 using Android.Opengl;
-using Android.Runtime;
-using Javax.Microedition.Khronos.Egl;
 using Javax.Microedition.Khronos.Opengles;
 
-namespace SkiaSharp.Views
+using EGLConfig = Javax.Microedition.Khronos.Egl.EGLConfig;
+
+namespace SkiaSharp.Views.Android
 {
 	public abstract class SKGLSurfaceViewRenderer : Java.Lang.Object, GLSurfaceView.IRenderer
 	{
+		private const SKColorType colorType = SKColorType.Rgba8888;
+		private const GRSurfaceOrigin surfaceOrigin = GRSurfaceOrigin.BottomLeft;
+
 		private GRContext context;
-		private GRBackendRenderTargetDesc renderTarget;
+		private GRGlFramebufferInfo glInfo;
+		private GRBackendRenderTarget renderTarget;
+		private SKSurface surface;
+		private SKCanvas canvas;
 
-		protected abstract void OnDrawFrame(SKSurface surface, GRBackendRenderTargetDesc renderTarget);
+		private SKSizeI lastSize;
+		private SKSizeI newSize;
 
-		void GLSurfaceView.IRenderer.OnDrawFrame(IGL10 gl)
+		public SKSize CanvasSize => lastSize;
+
+		public GRContext GRContext => context;
+
+		protected virtual void OnPaintSurface(SKPaintGLSurfaceEventArgs e)
 		{
-			// create the surface
-			using (var surface = SKSurface.Create(context, renderTarget))
-			{
-				// draw using SkiaSharp
-				OnDrawFrame(surface, renderTarget);
+		}
 
-				surface.Canvas.Flush();
+		[EditorBrowsable (EditorBrowsableState.Never)]
+		[Obsolete("Use OnPaintSurface(SKPaintGLSurfaceEventArgs) instead.")]
+		protected virtual void OnDrawFrame(SKSurface surface, GRBackendRenderTargetDesc renderTarget)
+		{
+		}
+
+		public void OnDrawFrame(IGL10 gl)
+		{
+			GLES20.GlClear(GLES20.GlColorBufferBit | GLES20.GlDepthBufferBit | GLES20.GlStencilBufferBit);
+
+			// create the contexts if not done already
+			if (context == null)
+			{
+				var glInterface = GRGlInterface.Create();
+				context = GRContext.CreateGl(glInterface);
+			}
+
+			// manage the drawing surface
+			if (renderTarget == null || lastSize != newSize || !renderTarget.IsValid)
+			{
+				// create or update the dimensions
+				lastSize = newSize;
+
+				// read the info from the buffer
+				var buffer = new int[3];
+				GLES20.GlGetIntegerv(GLES20.GlFramebufferBinding, buffer, 0);
+				GLES20.GlGetIntegerv(GLES20.GlStencilBits, buffer, 1);
+				GLES20.GlGetIntegerv(GLES20.GlSamples, buffer, 2);
+				var samples = buffer[2];
+				var maxSamples = context.GetMaxSurfaceSampleCount(colorType);
+				if (samples > maxSamples)
+					samples = maxSamples;
+				glInfo = new GRGlFramebufferInfo((uint)buffer[0], colorType.ToGlSizedFormat());
+
+				// destroy the old surface
+				surface?.Dispose();
+				surface = null;
+				canvas = null;
+
+				// re-create the render target
+				renderTarget?.Dispose();
+				renderTarget = new GRBackendRenderTarget(newSize.Width, newSize.Height, samples, buffer[1], glInfo);
+			}
+
+			// create the surface
+			if (surface == null)
+			{
+				surface = SKSurface.Create(context, renderTarget, surfaceOrigin, colorType);
+				canvas = surface.Canvas;
+			}
+
+			using (new SKAutoCanvasRestore(canvas, true))
+			{
+				// start drawing
+#pragma warning disable CS0618 // Type or member is obsolete
+				var e = new SKPaintGLSurfaceEventArgs(surface, renderTarget, surfaceOrigin, colorType, glInfo);
+				OnPaintSurface(e);
+				OnDrawFrame(e.Surface, e.RenderTarget);
+#pragma warning restore CS0618 // Type or member is obsolete
 			}
 
 			// flush the SkiaSharp contents to GL
+			canvas.Flush();
 			context.Flush();
 		}
 
-		void GLSurfaceView.IRenderer.OnSurfaceChanged(IGL10 gl, int width, int height)
+		public void OnSurfaceChanged(IGL10 gl, int width, int height)
 		{
 			GLES20.GlViewport(0, 0, width, height);
 
-			renderTarget.Width = width;
-			renderTarget.Height = height;
+			// get the new surface size
+			newSize = new SKSizeI(width, height);
 		}
 
-		void GLSurfaceView.IRenderer.OnSurfaceCreated(IGL10 gl, EGLConfig config)
+		public void OnSurfaceCreated(IGL10 gl, EGLConfig config)
 		{
-			FreeContext();
-
-			// get the config
-			var egl = EGLContext.EGL.JavaCast<IEGL10>();
-			var disp = egl.EglGetCurrentDisplay();
-
-			// stencil buffers
-			int[] stencilbuffers = new int[1];
-			egl.EglGetConfigAttrib(disp, config, EGL10.EglStencilSize, stencilbuffers);
-
-			// samples
-			int[] samples = new int[1];
-			egl.EglGetConfigAttrib(disp, config, EGL10.EglSamples, samples);
-
-			// get the frame buffer
-			int[] framebuffers = new int[1];
-			gl.GlGetIntegerv(GLES20.GlFramebufferBinding, framebuffers, 0);
-
-			// create the SkiaSharp context
-			var glInterface = GRGlInterface.CreateNativeGlInterface();
-			context = GRContext.Create(GRBackend.OpenGL, glInterface);
-
-			// create the render target
-			renderTarget = new GRBackendRenderTargetDesc
-			{
-				Width = 0, // set later
-				Height = 0, // set later
-				Config = GRPixelConfig.Rgba8888,
-				Origin = GRSurfaceOrigin.TopLeft,
-				SampleCount = samples[0],
-				StencilBits = stencilbuffers[0],
-				RenderTargetHandle = (IntPtr)framebuffers[0],
-			};
 		}
 
 		protected override void Dispose(bool disposing)
 		{
+			if (disposing)
+			{
+				FreeContext();
+			}
 			base.Dispose(disposing);
-			FreeContext();
 		}
 
 		private void FreeContext()
 		{
-			if (context != null)
-			{
-				context.Dispose();
-				context = null;
-			}
+			surface?.Dispose();
+			surface = null;
+			renderTarget?.Dispose();
+			renderTarget = null;
+			context?.Dispose();
+			context = null;
 		}
 	}
 }

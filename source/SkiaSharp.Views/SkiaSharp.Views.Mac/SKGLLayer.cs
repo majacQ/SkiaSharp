@@ -1,14 +1,24 @@
-using System;
+﻿using System;
+using System.ComponentModel;
 using CoreAnimation;
 using CoreVideo;
 using OpenGL;
+using SkiaSharp.Views.GlesInterop;
 
-namespace SkiaSharp.Views
+namespace SkiaSharp.Views.Mac
 {
 	public class SKGLLayer : CAOpenGLLayer
 	{
+		private const SKColorType colorType = SKColorType.Rgba8888;
+		private const GRSurfaceOrigin surfaceOrigin = GRSurfaceOrigin.BottomLeft;
+
 		private GRContext context;
-		private GRBackendRenderTargetDesc renderTarget;
+		private GRGlFramebufferInfo glInfo;
+		private GRBackendRenderTarget renderTarget;
+		private SKSurface surface;
+		private SKCanvas canvas;
+
+		private SKSizeI lastSize;
 
 		public SKGLLayer()
 		{
@@ -16,13 +26,25 @@ namespace SkiaSharp.Views
 			NeedsDisplayOnBoundsChange = true;
 		}
 
+		[EditorBrowsable (EditorBrowsableState.Never)]
+		[Obsolete("Use PaintSurface instead.")]
 		public ISKGLLayerDelegate SKDelegate { get; set; }
+
+		public SKSize CanvasSize => lastSize;
+
+		public GRContext GRContext => context;
 
 		public event EventHandler<SKPaintGLSurfaceEventArgs> PaintSurface;
 
+		protected virtual void OnPaintSurface(SKPaintGLSurfaceEventArgs e)
+		{
+			PaintSurface?.Invoke(this, e);
+		}
+
+		[EditorBrowsable (EditorBrowsableState.Never)]
+		[Obsolete("Use OnPaintSurface(SKPaintGLSurfaceEventArgs) instead.")]
 		public virtual void DrawInSurface(SKSurface surface, GRBackendRenderTargetDesc renderTarget)
 		{
-			PaintSurface?.Invoke(this, new SKPaintGLSurfaceEventArgs(surface, renderTarget));
 		}
 
 		public override void DrawInCGLContext(CGLContext glContext, CGLPixelFormat pixelFormat, double timeInterval, ref CVTimeStamp timeStamp)
@@ -32,24 +54,58 @@ namespace SkiaSharp.Views
 			if (context == null)
 			{
 				// get the bits for SkiaSharp
-				var glInterface = GRGlInterface.CreateNativeGlInterface();
-				context = GRContext.Create(GRBackend.OpenGL, glInterface);
+				var glInterface = GRGlInterface.Create();
+				context = GRContext.CreateGl(glInterface);
+			}
+
+			// manage the drawing surface
+			var surfaceWidth = (int)(Bounds.Width * ContentsScale);
+			var surfaceHeight = (int)(Bounds.Height * ContentsScale);
+			var newSize = new SKSizeI(surfaceWidth, surfaceHeight);
+			if (renderTarget == null || lastSize != newSize || !renderTarget.IsValid)
+			{
+				// create or update the dimensions
+				lastSize = newSize;
+
+				// read the info from the buffer
+				Gles.glGetIntegerv(Gles.GL_FRAMEBUFFER_BINDING, out var framebuffer);
+				Gles.glGetIntegerv(Gles.GL_STENCIL_BITS, out var stencil);
+				Gles.glGetIntegerv(Gles.GL_SAMPLES, out var samples);
+				var maxSamples = context.GetMaxSurfaceSampleCount(colorType);
+				if (samples > maxSamples)
+					samples = maxSamples;
+				glInfo = new GRGlFramebufferInfo((uint)framebuffer, colorType.ToGlSizedFormat());
+
+				// destroy the old surface
+				surface?.Dispose();
+				surface = null;
+				canvas = null;
+
+				// re-create the render target
+				renderTarget?.Dispose();
+				renderTarget = new GRBackendRenderTarget(newSize.Width, newSize.Height, samples, stencil, glInfo);
 			}
 
 			// create the surface
-			renderTarget = SKGLDrawable.CreateRenderTarget();
-			renderTarget.Width = (int)(Bounds.Width * ContentsScale);
-			renderTarget.Height = (int)(Bounds.Height * ContentsScale);
-			using (var surface = SKSurface.Create(context, renderTarget))
+			if (surface == null)
 			{
-				// draw on the surface
-				DrawInSurface(surface, renderTarget);
-				SKDelegate?.DrawInSurface(surface, renderTarget);
+				surface = SKSurface.Create(context, renderTarget, surfaceOrigin, colorType);
+				canvas = surface.Canvas;
+			}
 
-				surface.Canvas.Flush();
+			using (new SKAutoCanvasRestore(canvas, true))
+			{
+				// start drawing
+#pragma warning disable CS0618 // Type or member is obsolete
+				var e = new SKPaintGLSurfaceEventArgs(surface, renderTarget, surfaceOrigin, colorType, glInfo);
+				OnPaintSurface(e);
+				DrawInSurface(e.Surface, e.RenderTarget);
+				SKDelegate?.DrawInSurface(e.Surface, e.RenderTarget);
+#pragma warning restore CS0618 // Type or member is obsolete
 			}
 
 			// flush the SkiaSharp context to the GL context
+			canvas.Flush();
 			context.Flush();
 
 			base.DrawInCGLContext(glContext, pixelFormat, timeInterval, ref timeStamp);

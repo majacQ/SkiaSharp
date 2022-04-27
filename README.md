@@ -1,107 +1,62 @@
 # SkiaSharp
 
-[![Gitter.im](https://img.shields.io/badge/gitter.im-xamarin%2FXamarinComponents-E60256.svg)](https://gitter.im/xamarin/XamarinComponents)  [![NuGet](https://img.shields.io/nuget/v/SkiaSharp.svg?maxAge=2592000)](https://www.nuget.org/packages/SkiaSharp)  [![NuGet Pre Release](https://img.shields.io/nuget/vpre/SkiaSharp.svg?maxAge=2592000)](https://www.nuget.org/packages/SkiaSharp)
+[![SkiaSharp](https://img.shields.io/nuget/vpre/SkiaSharp.svg?maxAge=2592000&label=SkiaSharp%20nuget)](https://www.nuget.org/packages/SkiaSharp)  [![SkiaSharp.Views](https://img.shields.io/nuget/vpre/SkiaSharp.Views.svg?maxAge=2592000&label=SkiaSharp.Views%20nuget)](https://www.nuget.org/packages/SkiaSharp.Views)  [![SkiaSharp.Views.Forms](https://img.shields.io/nuget/vpre/SkiaSharp.Views.Forms.svg?maxAge=2592000&label=SkiaSharp.Views.Forms%20nuget)](https://www.nuget.org/packages/SkiaSharp.Views.Forms)  [![HarfBuzzSharp](https://img.shields.io/nuget/vpre/HarfBuzzSharp.svg?maxAge=2592000&label=HarfBuzzSharp%20nuget)](https://www.nuget.org/packages/HarfBuzzSharp)  [![SkiaSharp.Views.Uno](https://img.shields.io/nuget/vpre/SkiaSharp.Views.Uno.svg?maxAge=2592000&label=SkiaSharp.Views.Uno%20nuget)](https://www.nuget.org/packages/SkiaSharp.Views.Uno) 
+[![chat](https://img.shields.io/badge/chat-xamarin%2FXamarinComponents-E60256.svg)](https://gitter.im/xamarin/XamarinComponents)  [![SkiaSharp API Docs](https://img.shields.io/badge/docs-skiasharp-1faece.svg)](https://docs.microsoft.com/dotnet/api/SkiaSharp)  [![HarfBuzzSharp API Docs](https://img.shields.io/badge/docs-harfbuzzsharp-1faece.svg)](https://docs.microsoft.com/dotnet/api/SkiaSharp)  [![SkiaSharp Guides](https://img.shields.io/badge/docs-guides-1faece.svg)](https://docs.microsoft.com/xamarin/graphics-games/skiasharp/)  
+[![Build Status](https://dev.azure.com/devdiv/DevDiv/_apis/build/status/Xamarin/Components/SkiaSharp?branchName=main)](https://dev.azure.com/devdiv/DevDiv/_build/latest?definitionId=10789&branchName=main)  [![Build Status](https://dev.azure.com/xamarin/public/_apis/build/status/mono/SkiaSharp/SkiaSharp%20(Public)?branchName=main)](https://dev.azure.com/xamarin/public/_build/latest?definitionId=4&branchName=main)
 
 SkiaSharp is a cross-platform 2D graphics API for .NET platforms based on Google's
-Skia Graphics Library (https://skia.org/).   It provides a comprehensive 2D API that can
+Skia Graphics Library ([skia.org](https://skia.org/)). It provides a comprehensive 2D API that can
 be used across mobile, server and desktop models to render images.
 
-## What is Included
+SkiaSharp provides cross-platform bindings for:
 
-SkiaSharp provides a PCL and platform-specific bindings for:
+ - .NET Standard 1.3
+ - .NET Core
+ - .NET 6
+ - Tizen
+ - Android
+ - iOS
+ - tvOS
+ - watchOS
+ - macOS
+ - Mac Catalyst
+ - Windows Classic Desktop (Windows.Forms / WPF)
+ - Windows UWP (Desktop / Mobile / Xbox / HoloLens)
+ - Web Assembly (WASM)
+ - Uno Platform (iOS / macOS / Android / WebAssembly / UWP)
 
- - Mac (Console or using the Xamarin.Mac)
- - Xamarin.Android
- - Xamarin.iOS
- - Xamarin.tvOS
- - Xamarin.Mac
- - Windows Desktop (Windows.Forms / WPF)
- - Windows UWP
-
-You can also build this on your particular variant of Unix
-to create your native libraries.
+The [API Documentation](https://docs.microsoft.com/en-us/dotnet/api/SkiaSharp/) is
+available on the web to browse.
 
 ## Using SkiaSharp
 
-SkiaSharp is available as a convenience NuGet package, to use install the package like this:
+SkiaSharp is available as a convenient NuGet package, to use install the package like this:
 
 ```
 nuget install SkiaSharp
 ```
 
-Our [getting started guide](https://developer.xamarin.com/guides/cross-platform/drawing/) will walk you 
-through both the basic setup as well as the platform specific capabilties.
+_Because there are multiple distros of Linux, and we cannot possibly support them all, we have a separate NuGet package that will contain the supported binaries for a few distros: [SkiaSharp.NativeAssets.Linux](https://www.nuget.org/packages/SkiaSharp.NativeAssets.Linux). ([distros](https://github.com/mono/SkiaSharp/issues/453)) ([more info](https://github.com/mono/SkiaSharp/issues/312))_
 
-The [API Documentation](https://developer.xamarin.com/api/namespace/SkiaSharp/) is also available on the
-web to browse.
+There is also a early access feed that you can use to get the latest and greatest, before it goes out to the public:
 
-### Prerequisites
-
-Make sure the [Microsoft Visual C++ 2015 Redistributable](https://www.microsoft.com/en-us/download/details.aspx?id=52982) is installed if this error occurs: 
- > Unable to load DLL 'libSkiaSharp.dll': The specified module could not be found.
+```
+https://aka.ms/skiasharp-eap/index.json
+```
 
 ## Building SkiaSharp
 
-First clone the repository:
+Building SkiaSharp is mostly straight forward. The main issue is the multiple dependencies for each platform.
 
-    $ git clone https://github.com/mono/SkiaSharp.git
+However, these are easy to install as they are found on the various websites. If you are just working on managed code, it is even easier as there mays to skip all the native builds.
 
-Next, set up the submodules:
-
-    $ cd SkiaSharp
-    $ git submodule init && git submodule update
-    
-Then follow the platform-specific instructions below.
-
-### Mac OS X
-
-Run from Bash
-
-    $ ./bootstrapper.sh -t libs
-
-This runs the build process by using the `libs` build target.
-
-### Windows
-
-You need Python 2.7 in `PATH` environment variable. Then you can build it:
-
-    > .\bootstrapper.ps1 -Target libs
-
-This runs the build process by using the `libs` build target.
-
-### Build Targets
-
-There are several targets available, you can specify the target as the argument to the `-t` command line
-option in the bootstrapper script.
-
- - `Everything` - builds everything for the current platform
- - `externals` - builds all the native libraries
-   - [win] `externals-windows` - builds the native libraries for Windows
-   - [win] `externals-uwp` - builds the native libraries for Windows UWP
-   - [mac] `externals-osx` - builds the native libraries for Mac OS X
-   - [mac] `externals-ios` - builds the native libraries for iOS
-   - [mac] `externals-tvos` - builds the native libraries for tvOS
-   - [mac] `externals-andoid` - builds the native libraries for Android
- - `libs` - builds all the managed libraries
-   - [win] `libs-windows` - builds the managed libraries that can be built on Windows
-   - [mac] `libs-osx` - builds the managed libraries that can be built on Mac OS X
- - `tests` - builds and runs the tests
- - `samples` - builds the samples available for the current platform
- - `docs` - updates the mdoc files
- - `nuget` - packages the libraries into a NuGet
- - `clean` - cleans everything
-   - `clean-externals` - cleans externals only
-   - `clean-managed` - cleans managed libraries/samples only
+ - To get started building, [go here](https://github.com/mono/SkiaSharp/wiki/Building-SkiaSharp).
+ - If you are just wanting a custom Linux build, [go here](https://github.com/mono/SkiaSharp/wiki/Building-on-Linux)
 
 ## Compare Code
 
-Here are some links to show the differences in our code as compared to Google's.
+Here are some links to show the differences in our code as compared to Google's code.
 
-What version are we on? [**m54**](https://github.com/google/skia/tree/chrome/m54)  
-Are we up-to-date with Google? [Compare](https://github.com/mono/skia/compare/xamarin-mobile-bindings...google:chrome/m54)  
-What have we added? [Compare](https://github.com/google/skia/compare/chrome/m54...mono:xamarin-mobile-bindings)  
-
-## Where is Windows Phone 8 / Store 8
- 
-We are working to add binaries for these platforms, stay tuned for a future release
-(or check the pull requests and branches, where we are working on those)
+What version are we on? [**m88**](https://github.com/google/skia/tree/chrome/m88)  
+Are we up-to-date with Google? [Compare](https://github.com/mono/skia/compare/xamarin-mobile-bindings...google:chrome/m88)  
+What have we added? [Compare](https://github.com/google/skia/compare/chrome/m88...mono:xamarin-mobile-bindings)  

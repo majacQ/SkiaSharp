@@ -1,102 +1,53 @@
-﻿using System;
-using System.ComponentModel;
-using Android.Content;
+﻿using Android.Content;
 using Android.Opengl;
-using Javax.Microedition.Khronos.Opengles;
+
+#if __MAUI__
+using SKFormsView = SkiaSharp.Views.Maui.Controls.SKGLView;
+using SKNativeView = SkiaSharp.Views.Android.SKGLTextureView;
+#else
 using Xamarin.Forms;
-using Xamarin.Forms.Platform.Android;
 
 using SKFormsView = SkiaSharp.Views.Forms.SKGLView;
-using SKNativeView = SkiaSharp.Views.SKGLSurfaceView;
+using SKNativeView = SkiaSharp.Views.Android.SKGLTextureView;
 
 [assembly: ExportRenderer(typeof(SKFormsView), typeof(SkiaSharp.Views.Forms.SKGLViewRenderer))]
+#endif
 
+#if __MAUI__
+namespace SkiaSharp.Views.Maui.Controls.Compatibility
+#else
 namespace SkiaSharp.Views.Forms
+#endif
 {
-	internal class SKGLViewRenderer : ViewRenderer<SKFormsView, SKNativeView>
+	public class SKGLViewRenderer : SKGLViewRendererBase<SKFormsView, SKNativeView>
 	{
-		protected override void OnElementChanged(ElementChangedEventArgs<SKFormsView> e)
+		public SKGLViewRenderer(Context context)
+			: base(context)
 		{
-			if (e.OldElement != null)
-			{
-				var oldController = (ISKGLViewController)e.OldElement;
-
-				// unsubscribe from events
-				oldController.SurfaceInvalidated -= OnSurfaceInvalidated;
-			}
-
-			if (e.NewElement != null)
-			{
-				var newController = (ISKGLViewController)e.NewElement;
-
-				// create the native view
-				var view = new SKNativeView(Context);
-				view.SetRenderer(new Renderer(newController));
-				SetNativeControl(view);
-
-				// subscribe to events from the user
-				newController.SurfaceInvalidated += OnSurfaceInvalidated;
-
-				// start the rendering
-				SetRenderMode();
-			}
-
-			base.OnElementChanged(e);
 		}
 
-		protected override void OnElementPropertyChanged(object sender, PropertyChangedEventArgs e)
+		protected override void SetupRenderLoop(bool oneShot)
 		{
-			base.OnElementPropertyChanged(sender, e);
-
-			// refresh the render loop
-			if (e.PropertyName == SKFormsView.HasRenderLoopProperty.PropertyName)
-			{
-				SetRenderMode();
-			}
-		}
-
-		protected override void Dispose(bool disposing)
-		{
-			// detach all events before disposing
-			var controller = (ISKGLViewController)Element;
-			if (controller != null)
-			{
-				controller.SurfaceInvalidated -= OnSurfaceInvalidated;
-			}
-
-			base.Dispose(disposing);
-		}
-
-		// the user asked to repaint
-		private void OnSurfaceInvalidated(object sender, EventArgs eventArgs)
-		{
-			// if we aren't in a loop, then refresh once
-			if (!Element.HasRenderLoop)
+			if (oneShot)
 			{
 				Control.RequestRender();
 			}
-		}
 
-		private void SetRenderMode()
-		{
 			Control.RenderMode = Element.HasRenderLoop
 				? Rendermode.Continuously
 				: Rendermode.WhenDirty;
 		}
 
-		private class Renderer : SKNativeView.ISKRenderer
+		protected override SKNativeView CreateNativeControl()
 		{
-			private readonly ISKGLViewController controller;
+			var view = GetType() == typeof(SKGLViewRenderer)
+				? new SKNativeView(Context)
+				: base.CreateNativeControl();
 
-			public Renderer(ISKGLViewController controller)
-			{
-				this.controller = controller;
-			}
+			// Force the opacity to false for consistency with the other platforms
+			view.SetOpaque(false);
 
-			public void OnDrawFrame(SKSurface surface, GRBackendRenderTargetDesc renderTarget)
-			{
-				controller.OnPaintSurface(new SKPaintGLSurfaceEventArgs(surface, renderTarget));
-			}
+			return view;
 		}
 	}
 }

@@ -1,19 +1,17 @@
 ﻿using System;
-using System.Drawing.Imaging;
 using System.IO;
-using NUnit.Framework;
+using Xunit;
 
 namespace SkiaSharp.Tests
 {
-	[TestFixture]
 	public class SKStringTest : SKTest
 	{
-		[Test]
+		[SkippableFact]
 		public void StringIsMarshaledCorrectly ()
 		{
-			using (var typeface = SKTypeface.FromFile (Path.Combine ("fonts", "SpiderSymbol.ttf")))
+			using (var typeface = SKTypeface.FromFile (Path.Combine (PathToFonts, "SpiderSymbol.ttf")))
 			{
-				Assert.AreEqual ("SpiderSymbol", typeface.FamilyName, "Family name must be SpiderSymbol");
+				Assert.Equal ("SpiderSymbol", typeface.FamilyName);
 			}
 		}
 	}

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 
 using EGLDisplay = System.IntPtr;
@@ -17,6 +17,7 @@ namespace SkiaSharp.Views.GlesInterop
 
 		// Out-of-band handle values
 		public static readonly EGLNativeDisplayType EGL_DEFAULT_DISPLAY = IntPtr.Zero;
+		public static readonly IntPtr EGL_NO_CONFIG = IntPtr.Zero;
 		public static readonly IntPtr EGL_NO_DISPLAY = IntPtr.Zero;
 		public static readonly IntPtr EGL_NO_CONTEXT = IntPtr.Zero;
 		public static readonly IntPtr EGL_NO_SURFACE = IntPtr.Zero;
@@ -57,8 +58,9 @@ namespace SkiaSharp.Views.GlesInterop
 		public const int EGL_SWAP_BEHAVIOR_PRESERVED_BIT = 0x0400;
 
 		// ANGLE
-		public const int EGL_ANGLE_DISPLAY_ALLOW_RENDER_TO_BACK_BUFFER = 0x320B;
-		public const int EGL_ANGLE_SURFACE_RENDER_TO_BACK_BUFFER = 0x320C;
+		public const int EGL_EXPERIMENTAL_PRESENT_PATH_ANGLE = 0x33A4;
+		public const int EGL_EXPERIMENTAL_PRESENT_PATH_FAST_ANGLE = 0x33AA;
+		public const int EGL_EXPERIMENTAL_PRESENT_PATH_COPY_ANGLE = 0x33AA;
 
 		public const int EGL_PLATFORM_ANGLE_TYPE_ANGLE = 0x3203;
 		public const int EGL_PLATFORM_ANGLE_MAX_VERSION_MAJOR_ANGLE = 0x3204;
@@ -71,11 +73,15 @@ namespace SkiaSharp.Views.GlesInterop
 		public const int EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE = 0x3208;
 		public const int EGL_PLATFORM_ANGLE_DEVICE_TYPE_ANGLE = 0x3209;
 		public const int EGL_PLATFORM_ANGLE_DEVICE_TYPE_HARDWARE_ANGLE = 0x320A;
-		public const int EGL_PLATFORM_ANGLE_DEVICE_TYPE_WARP_ANGLE = 0x320B;
-		public const int EGL_PLATFORM_ANGLE_DEVICE_TYPE_REFERENCE_ANGLE = 0x320C;
+		public const int EGL_PLATFORM_ANGLE_DEVICE_TYPE_D3D_WARP_ANGLE = 0x320B;
+		public const int EGL_PLATFORM_ANGLE_DEVICE_TYPE_D3D_REFERENCE_ANGLE = 0x320C;
 		public const int EGL_PLATFORM_ANGLE_ENABLE_AUTOMATIC_TRIM_ANGLE = 0x320F;
 
 		public const int EGL_FIXED_SIZE_ANGLE = 0x3201;
+
+		public const string EGLNativeWindowTypeProperty = "EGLNativeWindowTypeProperty";
+		public const string EGLRenderSurfaceSizeProperty = "EGLRenderSurfaceSizeProperty";
+		public const string EGLRenderResolutionScaleProperty = "EGLRenderResolutionScaleProperty";
 
 		[DllImport(libEGL)]
 		private static extern IntPtr eglGetProcAddress([MarshalAs(UnmanagedType.LPStr)] string procname);

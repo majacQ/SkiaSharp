@@ -1,80 +1,33 @@
-﻿using System;
-using Android.Content;
+﻿using Android.Content;
+
+#if __MAUI__
+using SKFormsView = SkiaSharp.Views.Maui.Controls.SKCanvasView;
+using SKNativeView = SkiaSharp.Views.Android.SKCanvasView;
+#else
 using Xamarin.Forms;
-using Xamarin.Forms.Platform.Android;
 
 using SKFormsView = SkiaSharp.Views.Forms.SKCanvasView;
-using SKNativeView = SkiaSharp.Views.SKCanvasView;
+using SKNativeView = SkiaSharp.Views.Android.SKCanvasView;
 
 [assembly: ExportRenderer(typeof(SKFormsView), typeof(SkiaSharp.Views.Forms.SKCanvasViewRenderer))]
+#endif
 
+#if __MAUI__
+namespace SkiaSharp.Views.Maui.Controls.Compatibility
+#else
 namespace SkiaSharp.Views.Forms
+#endif
 {
-	internal class SKCanvasViewRenderer : ViewRenderer<SKFormsView, SKNativeView>
+	public class SKCanvasViewRenderer : SKCanvasViewRendererBase<SKFormsView, SKNativeView>
 	{
-		protected override void OnElementChanged(ElementChangedEventArgs<SKFormsView> e)
+		public SKCanvasViewRenderer(Context context)
+			: base(context)
 		{
-			if (e.OldElement != null)
-			{
-				var oldController = (ISKCanvasViewController)e.OldElement;
-
-				// unsubscribe from events
-				oldController.SurfaceInvalidated -= OnSurfaceInvalidated;
-			}
-
-			if (e.NewElement != null)
-			{
-				var newController = (ISKCanvasViewController)e.NewElement;
-
-				// create the native view
-				var view = new InternalView(Context, newController);
-				SetNativeControl(view);
-
-				// subscribe to events from the user
-				newController.SurfaceInvalidated += OnSurfaceInvalidated;
-
-				// paint for the first time
-				Control.Invalidate();
-			}
-
-			base.OnElementChanged(e);
 		}
 
-		protected override void Dispose(bool disposing)
-		{
-			// detach all events before disposing
-			var controller = (ISKCanvasViewController)Element;
-			if (controller != null)
-			{
-				controller.SurfaceInvalidated -= OnSurfaceInvalidated;
-			}
-
-			base.Dispose(disposing);
-		}
-
-		private void OnSurfaceInvalidated(object sender, EventArgs eventArgs)
-		{
-			// repaint the native control
-			Control.Invalidate();
-		}
-
-		private class InternalView : SKNativeView
-		{
-			private readonly ISKCanvasViewController controller;
-
-			public InternalView(Context context, ISKCanvasViewController controller)
-				: base(context)
-			{
-				this.controller = controller;
-			}
-
-			protected override void OnDraw(SKSurface surface, SKImageInfo info)
-			{
-				base.OnDraw(surface, info);
-
-				// the control is being repainted, let the user know
-				controller.OnPaintSurface(new SKPaintSurfaceEventArgs(surface, info));
-			}
-		}
+		protected override SKNativeView CreateNativeControl() =>
+			GetType() == typeof(SKCanvasViewRenderer)
+				? new SKNativeView(Context)
+				: base.CreateNativeControl();
 	}
 }

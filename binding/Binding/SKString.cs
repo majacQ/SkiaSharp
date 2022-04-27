@@ -1,19 +1,10 @@
-﻿//
-// Bindings for SKTypeface
-//
-// Author:
-//   Matthew Leibowitz
-//
-// Copyright 2016 Xamarin Inc
-//
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 
 namespace SkiaSharp
 {
-	internal class SKString : SKObject
+	internal unsafe class SKString : SKObject, ISKSkipObjectRegistration
 	{
-		[Preserve]
 		internal SKString (IntPtr handle, bool owns)
 			: base (handle, owns)
 		{
@@ -28,33 +19,58 @@ namespace SkiaSharp
 		}
 		
 		public SKString (byte [] src, long length)
-			: base (SkiaApi.sk_string_new_with_copy (src, (IntPtr)length), true)
+			: base (CreateCopy (src, length), true)
 		{
 			if (Handle == IntPtr.Zero) {
 				throw new InvalidOperationException ("Unable to copy the SKString instance.");
 			}
 		}
 		
+		private static IntPtr CreateCopy (byte [] src, long length)
+		{
+			fixed (byte* s = src) {
+				return SkiaApi.sk_string_new_with_copy (s, (IntPtr)length);
+			}
+		}
+
+		public SKString (byte [] src)
+			: this (src, src.Length)
+		{
+		}
+		
+		public SKString (string str)
+			: this (StringUtilities.GetEncodedText (str, SKTextEncoding.Utf8))
+		{
+		}
+		
 		public override string ToString ()
 		{
 			var cstr = SkiaApi.sk_string_get_c_str (Handle);
 			var clen = SkiaApi.sk_string_get_size (Handle);
-			return Util.GetString (cstr, (int)clen, SKTextEncoding.Utf8); 
+			return StringUtilities.GetString ((IntPtr)cstr, (int)clen, SKTextEncoding.Utf8);
 		}
 
 		public static explicit operator string (SKString skString)
 		{
 			return skString.ToString ();
 		}
-
-		protected override void Dispose (bool disposing)
+		
+		internal static SKString Create (string str)
 		{
-			if (Handle != IntPtr.Zero && OwnsHandle) {
-				SkiaApi.sk_string_destructor (Handle);
+			if (str == null) {
+				return null;
 			}
-
-			base.Dispose (disposing);
+			return new SKString (str);
 		}
+
+		protected override void Dispose (bool disposing) =>
+			base.Dispose (disposing);
+
+		protected override void DisposeNative () =>
+			SkiaApi.sk_string_destructor (Handle);
+
+		internal static SKString GetObject (IntPtr handle) =>
+			handle == IntPtr.Zero ? null : new SKString (handle, true);
 	}
 }
 

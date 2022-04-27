@@ -1,77 +1,107 @@
-﻿//
-// Bindings for SKMaskFilter
-//
-// Author:
-//   Miguel de Icaza
-//
-// Copyright 2016 Xamarin Inc
-//
-using System;
+﻿using System;
+using System.ComponentModel;
 
 namespace SkiaSharp
 {
-	public class SKMaskFilter : SKObject
+	[EditorBrowsable (EditorBrowsableState.Never)]
+	[Flags]
+	[Obsolete]
+	public enum SKBlurMaskFilterFlags
+	{
+		None = 0x00,
+		IgnoreTransform = 0x01,
+		HighQuality = 0x02,
+		All = IgnoreTransform | HighQuality,
+	}
+
+
+	// TODO: `getFormat`
+	// TODO: `computeFastBounds`
+
+	public unsafe class SKMaskFilter : SKObject, ISKReferenceCounted
 	{
 		private const float BlurSigmaScale = 0.57735f;
-		
-		[Preserve]
+		public const int TableMaxLength = 256;
+
 		internal SKMaskFilter (IntPtr handle, bool owns)
 			: base (handle, owns)
 		{
 		}
-		
-		protected override void Dispose (bool disposing)
-		{
-			if (Handle != IntPtr.Zero && OwnsHandle) {
-				SkiaApi.sk_maskfilter_unref (Handle);
-			}
 
+		protected override void Dispose (bool disposing) =>
 			base.Dispose (disposing);
-		}
-		
-		public static float ConvertRadiusToSigma(float radius)
+
+		public static float ConvertRadiusToSigma (float radius)
 		{
 			return radius > 0 ? BlurSigmaScale * radius + 0.5f : 0.0f;
 		}
 
-		public static float ConvertSigmaToRadius(float sigma)
+		public static float ConvertSigmaToRadius (float sigma)
 		{
 			return sigma > 0.5f ? (sigma - 0.5f) / BlurSigmaScale : 0.0f;
 		}
 
 		public static SKMaskFilter CreateBlur (SKBlurStyle blurStyle, float sigma)
 		{
-			return GetObject<SKMaskFilter> (SkiaApi.sk_maskfilter_new_blur (blurStyle, sigma));
+			return GetObject (SkiaApi.sk_maskfilter_new_blur (blurStyle, sigma));
 		}
 
-		public static SKMaskFilter CreateEmboss(float blurSigma, SKPoint3 direction, float ambient, float specular)
+		public static SKMaskFilter CreateBlur (SKBlurStyle blurStyle, float sigma, bool respectCTM)
 		{
-			return CreateEmboss(blurSigma, direction.X, direction.Y, direction.Z, ambient, specular);
+			return GetObject (SkiaApi.sk_maskfilter_new_blur_with_flags (blurStyle, sigma, respectCTM));
 		}
 
-		public static SKMaskFilter CreateEmboss(float blurSigma, float directionX, float directionY, float directionZ, float ambient, float specular)
+		[EditorBrowsable (EditorBrowsableState.Never)]
+		[Obsolete ("Use CreateBlur(SKBlurStyle, float) instead.")]
+		public static SKMaskFilter CreateBlur (SKBlurStyle blurStyle, float sigma, SKBlurMaskFilterFlags flags)
 		{
-			return GetObject<SKMaskFilter>(SkiaApi.sk_maskfilter_new_emboss(blurSigma, new[] { directionX, directionY, directionZ }, ambient, specular));
+			return CreateBlur (blurStyle, sigma, true);
 		}
 
-		public static SKMaskFilter CreateTable(byte[] table)
+		[EditorBrowsable (EditorBrowsableState.Never)]
+		[Obsolete ("Use CreateBlur(SKBlurStyle, float) instead.")]
+		public static SKMaskFilter CreateBlur (SKBlurStyle blurStyle, float sigma, SKRect occluder)
+		{
+			return CreateBlur (blurStyle, sigma, true);
+		}
+
+		[EditorBrowsable (EditorBrowsableState.Never)]
+		[Obsolete ("Use CreateBlur(SKBlurStyle, float) instead.")]
+		public static SKMaskFilter CreateBlur (SKBlurStyle blurStyle, float sigma, SKRect occluder, SKBlurMaskFilterFlags flags)
+		{
+			return CreateBlur (blurStyle, sigma, true);
+		}
+
+		[EditorBrowsable (EditorBrowsableState.Never)]
+		[Obsolete ("Use CreateBlur(SKBlurStyle, float, bool) instead.")]
+		public static SKMaskFilter CreateBlur (SKBlurStyle blurStyle, float sigma, SKRect occluder, bool respectCTM)
+		{
+			return CreateBlur (blurStyle, sigma, respectCTM);
+		}
+
+		public static SKMaskFilter CreateTable (byte[] table)
 		{
 			if (table == null)
-				throw new ArgumentNullException("table");
-			if (table.Length != SKColorTable.MaxLength)
-				throw new ArgumentException("Table must have a length of 256.", "table");
-			return GetObject<SKMaskFilter>(SkiaApi.sk_maskfilter_new_table(table));
+				throw new ArgumentNullException (nameof (table));
+			if (table.Length != TableMaxLength)
+				throw new ArgumentException ("Table must have a length of {SKColorTable.MaxLength}.", nameof (table));
+			fixed (byte* t = table) {
+				return GetObject (SkiaApi.sk_maskfilter_new_table (t));
+			}
 		}
 
-		public static SKMaskFilter CreateGamma(float gamma)
+		public static SKMaskFilter CreateGamma (float gamma)
 		{
-			return GetObject<SKMaskFilter>(SkiaApi.sk_maskfilter_new_gamma(gamma));
+			return GetObject (SkiaApi.sk_maskfilter_new_gamma (gamma));
 		}
 
-		public static SKMaskFilter CreateClip(byte min, byte max)
+		public static SKMaskFilter CreateClip (byte min, byte max)
 		{
-			return GetObject<SKMaskFilter>(SkiaApi.sk_maskfilter_new_clip(min, max));
+			return GetObject (SkiaApi.sk_maskfilter_new_clip (min, max));
 		}
+
+		internal static SKMaskFilter GetObject (IntPtr handle) =>
+			GetOrAddObject (handle, (h, o) => new SKMaskFilter (h, o));
 	}
 }
 

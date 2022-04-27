@@ -4,13 +4,14 @@ using AppKit;
 using CoreGraphics;
 using Foundation;
 
-namespace SkiaSharp.Views
+namespace SkiaSharp.Views.Mac
 {
 	[Register(nameof(SKCanvasView))]
 	[DesignTimeVisible(true)]
 	public class SKCanvasView : NSView
 	{
-		private SKDrawable drawable;
+		private SKCGSurfaceFactory drawable;
+		private bool ignorePixelScaling;
 
 		// created in code
 		public SKCanvasView()
@@ -22,7 +23,6 @@ namespace SkiaSharp.Views
 		public SKCanvasView(CGRect frame)
 			: base(frame)
 		{
-
 			Initialize();
 		}
 
@@ -40,31 +40,72 @@ namespace SkiaSharp.Views
 
 		private void Initialize()
 		{
-			drawable = new SKDrawable();
+			drawable = new SKCGSurfaceFactory();
+		}
+
+		public SKSize CanvasSize { get; private set; }
+
+		public bool IgnorePixelScaling
+		{
+			get => ignorePixelScaling;
+			set
+			{
+				ignorePixelScaling = value;
+				NeedsDisplay = true;
+			}
 		}
 
 		public event EventHandler<SKPaintSurfaceEventArgs> PaintSurface;
 
+		protected virtual void OnPaintSurface(SKPaintSurfaceEventArgs e)
+		{
+			PaintSurface?.Invoke(this, e);
+		}
+
+		[EditorBrowsable (EditorBrowsableState.Never)]
+		[Obsolete("Use OnPaintSurface(SKPaintSurfaceEventArgs) instead.")]
 		public virtual void DrawInSurface(SKSurface surface, SKImageInfo info)
 		{
-			PaintSurface?.Invoke(this, new SKPaintSurfaceEventArgs(surface, info));
 		}
 
 		public override void DrawRect(CGRect dirtyRect)
 		{
 			base.DrawRect(dirtyRect);
 
-			var ctx = NSGraphicsContext.CurrentContext.CGContext;
-
 			// create the skia context
-			SKImageInfo info;
-			var surface = drawable.CreateSurface(Bounds, Window.BackingScaleFactor, out info);
+			using (var surface = drawable.CreateSurface(Bounds, Window.BackingScaleFactor, out var info))
+			{
+				if (info.Width == 0 || info.Height == 0)
+				{
+					CanvasSize = SKSize.Empty;
+					return;
+				}
 
-			// draw on the image using SKiaSharp
-			DrawInSurface(surface, info);
+				var userVisibleSize = IgnorePixelScaling
+					? new SKSizeI((int)Bounds.Width, (int)Bounds.Height)
+					: info.Size;
 
-			// draw the surface to the context
-			drawable.DrawSurface(ctx, Bounds, info, surface);
+				CanvasSize = userVisibleSize;
+
+				if (IgnorePixelScaling)
+				{
+					var skiaCanvas = surface.Canvas;
+					skiaCanvas.Scale((float)Window.BackingScaleFactor);
+					skiaCanvas.Save();
+				}
+
+				using (var ctx = NSGraphicsContext.CurrentContext.CGContext)
+				{
+					// draw on the image using SKiaSharp
+					OnPaintSurface(new SKPaintSurfaceEventArgs(surface, info.WithSize(userVisibleSize), info));
+#pragma warning disable CS0618 // Type or member is obsolete
+					DrawInSurface(surface, info);
+#pragma warning restore CS0618 // Type or member is obsolete
+
+					// draw the surface to the context
+					drawable.DrawSurface(ctx, Bounds, info, surface);
+				}
+			}
 		}
 
 		protected override void Dispose(bool disposing)
