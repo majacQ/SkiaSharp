@@ -1,12 +1,6 @@
 <Project>
 
-  <!-- workaround for https://github.com/microsoft/ProjectReunion/pull/707 -->
-  <Target Name="Net6WinUIWorkaround"
-          BeforeTargets="_GetSdkToolsPathsFromSdk"
-          Condition="$(TargetFramework.Contains('-windows')) == true ">
-    <PropertyGroup>
-      <TargetPlatformIdentifierAdjusted>UAP</TargetPlatformIdentifierAdjusted>
-    </PropertyGroup>
-  </Target>
+  <!-- Required - Overwrite tasks that are not needed when multitargeting -->
+  <Target Name="BinPlaceBootstrapDll" />
 
 </Project>

@@ -3,6 +3,13 @@ using System.ComponentModel;
 
 namespace SkiaSharp
 {
+	public enum SKPathConvexity
+	{
+		Unknown = 0,
+		Convex = 1,
+		Concave = 2,
+	}
+
 	public unsafe class SKPath : SKObject, ISKSkipObjectRegistration
 	{
 		internal SKPath (IntPtr handle, bool owns)
@@ -38,13 +45,14 @@ namespace SkiaSharp
 		}
 
 		public SKPathConvexity Convexity {
-			get => SkiaApi.sk_path_get_convexity (Handle);
-			set => SkiaApi.sk_path_set_convexity (Handle, value);
+			get => IsConvex ? SKPathConvexity.Convex : SKPathConvexity.Concave;
+			[Obsolete]
+			set { }
 		}
 
-		public bool IsConvex => Convexity == SKPathConvexity.Convex;
+		public bool IsConvex => SkiaApi.sk_path_is_convex(Handle);
 
-		public bool IsConcave => Convexity == SKPathConvexity.Concave;
+		public bool IsConcave => !IsConvex;
 
 		public bool IsEmpty => VerbCount == 0;
 
@@ -537,8 +545,16 @@ namespace SkiaSharp
 					throw new ArgumentException ("Must be an array of four elements.", nameof (points));
 
 				fixed (SKPoint* p = points) {
-					return SkiaApi.sk_path_iter_next (Handle, p);
+					return Next(p);
 				}
+			}
+
+			public SKPathVerb Next (SKPoint* points)
+			{
+				if (points == null)
+					throw new ArgumentNullException (nameof (points));
+
+				return SkiaApi.sk_path_iter_next (Handle, points);
 			}
 
 			public float ConicWeight () =>
@@ -576,9 +592,18 @@ namespace SkiaSharp
 					throw new ArgumentNullException (nameof (points));
 				if (points.Length != 4)
 					throw new ArgumentException ("Must be an array of four elements.", nameof (points));
+
 				fixed (SKPoint* p = points) {
-					return SkiaApi.sk_path_rawiter_next (Handle, p);
+					return Next (p);
 				}
+			}
+
+			public SKPathVerb Next (SKPoint* points)
+			{
+				if (points == null)
+					throw new ArgumentNullException (nameof (points));
+
+				return SkiaApi.sk_path_rawiter_next (Handle, points);
 			}
 
 			public float ConicWeight () =>
