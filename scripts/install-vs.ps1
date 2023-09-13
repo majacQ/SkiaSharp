@@ -1,6 +1,7 @@
 Param(
     [string] $Version,
-    [string] $TestPath = "2022\Preview"
+    [string] $TestPath = "2022\Preview",
+    [boolean] $RemoveExisting = $false
 )
 
 $ErrorActionPreference = 'Stop'
@@ -17,6 +18,11 @@ if ("$env:AGENT_TEMPDIRECTORY") {
 }
 
 $startTime = Get-Date
+
+if ($RemoveExisting) {
+  Write-Host "Removing previous Visual Studio..."
+  & 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\InstallCleanup.exe' -f
+}
 
 Write-Host "Downloading Visual Studio Installer..."
 Invoke-WebRequest -UseBasicParsing `
@@ -37,7 +43,6 @@ Write-Host "Installing Visual Studio..."
 $exitCode = & "$temp\dd_vs_community.exe" --quiet --norestart --wait `
   --includeRecommended `
   --add Microsoft.VisualStudio.Workload.NetCrossPlat `
-  --add Microsoft.VisualStudio.Workload.NetCoreTools `
   --add Microsoft.VisualStudio.Workload.ManagedDesktop `
   --add Microsoft.VisualStudio.Workload.Universal `
   | Out-Null
@@ -47,6 +52,9 @@ Write-Host "Exit code: $exitCode"
 $vsLogs = 'output\logs\vs-logs'
 New-Item -ItemType Directory -Force -Path "$vsLogs" | Out-Null
 Get-ChildItem "$temp\dd_*" |
+  Where-Object { $_.CreationTime -gt $startTime } |
+  Copy-Item -Destination "$vsLogs"
+Get-ChildItem "$env:TEMP\dd_*" |
   Where-Object { $_.CreationTime -gt $startTime } |
   Copy-Item -Destination "$vsLogs"
 
